@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financeiro - Alexandre Reparos Automotivos</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <header class="main-header">
+            <div class="logo">
+                <h1>Alexandre Reparos Automotivos</h1>
+            </div>
+            <nav class="main-nav">
+                <ul>
+                    <li><a href="dashboard.html">Dashboard</a></li>
+                    <li><a href="clientes.html">Clientes</a></li>
+                    <li><a href="veiculos.html">Veículos</a></li>
+                    <li><a href="orcamentos.html">Orçamentos</a></li>
+                    <li><a href="financeiro.html" class="active">Financeiro</a></li>
+                </ul>
+            </nav>
+            <div class="user-info" id="user-info">
+                <!-- Preenchido por JavaScript -->
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="dashboard-section">
+                <div class="section-header">
+                    <h2>Gerenciamento Financeiro</h2>
+                    <div>
+                        <button id="btn-nova-despesa" class="btn btn-secondary">+ Nova Despesa</button>
+                        <button id="btn-registrar-pagamento" class="btn btn-success">+ Registrar Pagamento</button>
+                    </div>
+                </div>
+
+                <!-- Filtro por mês -->
+                <div class="filtro-container" style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <label for="filtro-mes" style="font-weight: bold;">Filtrar por Mês:</label>
+                        <select id="filtro-mes" style="padding: 8px 15px; border-radius: 5px; border: 1px solid #ddd;">
+                            <option value="todos">Todos os meses</option>
+                            <option value="01">Janeiro</option>
+                            <option value="02">Fevereiro</option>
+                            <option value="03">Março</option>
+                            <option value="04">Abril</option>
+                            <option value="05">Maio</option>
+                            <option value="06">Junho</option>
+                            <option value="07">Julho</option>
+                            <option value="08">Agosto</option>
+                            <option value="09">Setembro</option>
+                            <option value="10">Outubro</option>
+                            <option value="11">Novembro</option>
+                            <option value="12">Dezembro</option>
+                        </select>
+                        <select id="filtro-ano" style="padding: 8px 15px; border-radius: 5px; border: 1px solid #ddd;">
+                            <!-- Anos serão carregados dinamicamente -->
+                        </select>
+                        <button id="btn-aplicar-filtro" class="btn btn-primary">Aplicar</button>
+                        <button id="btn-limpar-filtro" class="btn btn-secondary">Limpar</button>
+                    </div>
+                </div>
+
+                <div class="stats-container">
+                    <div class="stat-card">
+                        <div class="stat-value" id="receita-total">R$ 0</div>
+                        <div class="stat-label">Receita Total</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="despesas-total">R$ 0</div>
+                        <div class="stat-label">Despesas Totais</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="liquido-total" style="color: #28a745;">R$ 0</div>
+                        <div class="stat-label">Lucro Líquido</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="margem-lucro">0%</div>
+                        <div class="stat-label">Margem de Lucro</div>
+                    </div>
+                </div>
+
+                <!-- Gráfico de análise mensal -->
+                <div style="margin: 30px 0; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <h3>Análise Financeira Mensal</h3>
+                    <div style="height: 300px;">
+                        <canvas id="grafico-financeiro"></canvas>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 30px;">
+                    <div>
+                        <div class="section-header" style="margin-bottom: 15px;">
+                            <h3>Receitas do Mês</h3>
+                            <span class="badge" id="mes-atual-label"></span>
+                        </div>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Número</th>
+                                        <th>Cliente</th>
+                                        <th>Valor</th>
+                                        <th>Data Pagamento</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="receitas-mes-body">
+                                    <!-- Receitas do mês serão carregadas aqui -->
+                                </tbody>
+                            </table>
+                            <div style="padding: 15px; text-align: center;">
+                                <small id="receitas-message">Carregando receitas...</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="section-header" style="margin-bottom: 15px;">
+                            <h3>Despesas do Mês</h3>
+                            <button id="btn-ver-todas-despesas" class="btn btn-sm btn-secondary">Ver Todas</button>
+                        </div>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Descrição</th>
+                                        <th>Valor</th>
+                                        <th>Data</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="despesas-mes-body">
+                                    <!-- Despesas do mês serão carregadas aqui -->
+                                </tbody>
+                            </table>
+                            <div style="padding: 15px; text-align: center;">
+                                <small id="despesas-message">Carregando despesas...</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resumo financeiro mensal -->
+                <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+                    <h3>Resumo Financeiro do Mês</h3>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-top: 15px;">
+                        <div style="text-align: center; padding: 15px; background: white; border-radius: 5px;">
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #28a745;" id="receita-mes">R$ 0</div>
+                            <div style="color: #666;">Receita do Mês</div>
+                        </div>
+                        <div style="text-align: center; padding: 15px; background: white; border-radius: 5px;">
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #dc3545;" id="despesas-mes">R$ 0</div>
+                            <div style="color: #666;">Despesas do Mês</div>
+                        </div>
+                        <div style="text-align: center; padding: 15px; background: white; border-radius: 5px;">
+                            <div style="font-size: 1.5rem; font-weight: bold;" id="liquido-mes">R$ 0</div>
+                            <div style="color: #666;">Lucro Líquido</div>
+                        </div>
+                        <div style="text-align: center; padding: 15px; background: white; border-radius: 5px;">
+                            <div style="font-size: 1.5rem; font-weight: bold;" id="margem-mes">0%</div>
+                            <div style="color: #666;">Margem do Mês</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="loader" id="financeiro-loader"></div>
+            </div>
+        </main>
+
+        <footer class="main-footer">
+            <p>&copy; 2025 Alexandre Reparos Automotivos. Todos os direitos reservados.</p>
+        </footer>
+    </div>
+
+    <!-- Modal para registrar pagamento -->
+    <div id="pagamento-modal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close">&times;</button>
+            <h2 class="modal-title">Registrar Pagamento</h2>
+            <form id="form-pagamento">
+                <div class="form-group">
+                    <label for="pagamento-orcamento">Orçamento *</label>
+                    <select id="pagamento-orcamento" required>
+                        <option value="">Carregando orçamentos pendentes...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="pagamento-valor">Valor Recebido *</label>
+                    <input type="number" id="pagamento-valor" required step="0.01" min="0.01">
+                </div>
+                <div class="form-group">
+                    <label for="pagamento-forma">Forma de Pagamento *</label>
+                    <select id="pagamento-forma" required>
+                        <option value="">Selecione a forma de pagamento</option>
+                        <option value="dinheiro">Dinheiro</option>
+                        <option value="cartao_credito">Cartão de Crédito</option>
+                        <option value="cartao_debito">Cartão de Débito</option>
+                        <option value="pix">PIX</option>
+                        <option value="transferencia">Transferência Bancária</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="pagamento-data">Data do Pagamento *</label>
+                    <input type="date" id="pagamento-data" required>
+                </div>
+                <div class="form-group">
+                    <label for="pagamento-observacoes">Observações</label>
+                    <textarea id="pagamento-observacoes" rows="3"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Registrar Pagamento</button>
+                    <button type="button" class="btn btn-secondary modal-close">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para despesa -->
+    <div id="despesa-modal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close">&times;</button>
+            <h2 class="modal-title">Nova Despesa</h2>
+            <form id="form-despesa">
+                <div class="form-group">
+                    <label for="despesa-tipo">Tipo de Despesa *</label>
+                    <select id="despesa-tipo" required>
+                        <option value="">Selecione o tipo</option>
+                        <option value="pecas">Peças e Materiais</option>
+                        <option value="aluguel">Aluguel</option>
+                        <option value="energia">Energia Elétrica</option>
+                        <option value="agua">Água</option>
+                        <option value="salario">Salários</option>
+                        <option value="manutencao">Manutenção de Equipamentos</option>
+                        <option value="combustivel">Combustível</option>
+                        <option value="outros">Outros</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="despesa-descricao">Descrição *</label>
+                    <input type="text" id="despesa-descricao" required
+                        placeholder="Ex: Compra de peças, conta de luz...">
+                </div>
+                <div class="form-group">
+                    <label for="despesa-valor">Valor *</label>
+                    <input type="number" id="despesa-valor" required step="0.01" min="0.01" placeholder="0,00">
+                </div>
+                <div class="form-group">
+                    <label for="despesa-data">Data *</label>
+                    <input type="date" id="despesa-data" required>
+                </div>
+                <div class="form-group">
+                    <label for="despesa-documento">Número do Documento (Opcional)</label>
+                    <input type="text" id="despesa-documento" placeholder="Nº nota fiscal, fatura...">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Salvar Despesa</button>
+                    <button type="button" class="btn btn-secondary modal-close">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para listar todas as despesas -->
+    <div id="todas-despesas-modal" class="modal">
+        <div class="modal-content" style="max-width: 900px;">
+            <button class="modal-close">&times;</button>
+            <h2 class="modal-title">Todas as Despesas</h2>
+            
+            <!-- Filtros no modal -->
+            <div style="margin-bottom: 20px; display: flex; gap: 10px;">
+                <select id="filtro-mes-modal" style="padding: 8px; flex: 1;">
+                    <option value="">Todos os meses</option>
+                    <option value="01">Janeiro</option>
+                    <option value="02">Fevereiro</option>
+                    <option value="03">Março</option>
+                    <option value="04">Abril</option>
+                    <option value="05">Maio</option>
+                    <option value="06">Junho</option>
+                    <option value="07">Julho</option>
+                    <option value="08">Agosto</option>
+                    <option value="09">Setembro</option>
+                    <option value="10">Outubro</option>
+                    <option value="11">Novembro</option>
+                    <option value="12">Dezembro</option>
+                </select>
+                <select id="filtro-ano-modal" style="padding: 8px; flex: 1;">
+                    <option value="">Todos os anos</option>
+                </select>
+                <button id="btn-filtrar-modal" class="btn btn-primary">Filtrar</button>
+            </div>
+            
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Tipo</th>
+                            <th>Descrição</th>
+                            <th>Valor</th>
+                            <th>Documento</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="todas-despesas-body">
+                        <!-- Todas as despesas serão carregadas aqui -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="form-actions" style="margin-top: 20px;">
+                <button type="button" class="btn btn-secondary modal-close">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/firebase-config.js"></script>
+    <script>
+        // Gerenciamento Financeiro - COM ANÁLISE MENSAL
+        document.addEventListener('DOMContentLoaded', function() {
+            // Variáveis globais
+            let filtroMesAtual = null;
+            let filtroAnoAtual = null;
+            let chartFinanceiro = null;
+            
+            // Verificar autenticação
+            auth.onAuthStateChanged(function(user) {
+                if (user) {
+                    loadUserInfo(user);
+                    carregarAnosDisponiveis();
+                    carregarDadosFinanceirosCompletos();
+                } else {
+                    window.location.href = 'login.html';
+                }
+            });
+            
+            // Configurar informações do usuário
+            function loadUserInfo(user) {
+                const userInfo = document.getElementById('user-info');
+                if (userInfo) {
+                    userInfo.innerHTML = `
+                        <span class="user-email">${user.email}</span>
+                        <button id="logout-btn" class="btn btn-sm btn-danger">Sair</button>
+                    `;
+                    
+                    document.getElementById('logout-btn').addEventListener('click', function() {
+                        auth.signOut().then(() => {
+                            window.location.href = 'login.html';
+                        });
+                    });
+                }
+            }
+            
+            // Carregar anos disponíveis para filtro
+            function carregarAnosDisponiveis() {
+                const anoAtual = new Date().getFullYear();
+                const selectAno = document.getElementById('filtro-ano');
+                const selectAnoModal = document.getElementById('filtro-ano-modal');
+                
+                let html = `<option value="${anoAtual}">${anoAtual}</option>`;
+                for (let i = 1; i <= 5; i++) {
+                    const ano = anoAtual - i;
+                    html += `<option value="${ano}">${ano}</option>`;
+                }
+                
+                if (selectAno) selectAno.innerHTML = html;
+                if (selectAnoModal) selectAnoModal.innerHTML = `<option value="">Todos os anos</option>` + html;
+                
+                // Selecionar mês atual
+                const mesAtual = String(new Date().getMonth() + 1).padStart(2, '0');
+                document.getElementById('filtro-mes').value = mesAtual;
+                
+                // Atualizar label do mês atual
+                const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                              'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+                document.getElementById('mes-atual-label').textContent = `${meses[parseInt(mesAtual) - 1]}/${anoAtual}`;
+            }
+            
+            // Carregar dados financeiros completos
+            async function carregarDadosFinanceirosCompletos() {
+                const loader = document.getElementById('financeiro-loader');
+                if (loader) loader.style.display = 'block';
+                
+                try {
+                    // Carregar todos os dados
+                    const [orcamentosSnapshot, despesasSnapshot] = await Promise.all([
+                        db.collection('orcamentos').get(),
+                        db.collection('despesas').get()
+                    ]);
+                    
+                    // Processar dados
+                    processarDadosFinanceiros(orcamentosSnapshot, despesasSnapshot);
+                    criarGraficoFinanceiro(orcamentosSnapshot, despesasSnapshot);
+                    
+                    if (loader) loader.style.display = 'none';
+                } catch (error) {
+                    console.error('Erro ao carregar dados financeiros:', error);
+                    if (loader) loader.style.display = 'none';
+                }
+            }
+            
+            // Processar dados financeiros
+            function processarDadosFinanceiros(orcamentosSnapshot, despesasSnapshot) {
+                let receitaTotal = 0;
+                let despesasTotal = 0;
+                let receitaMes = 0;
+                let despesasMes = 0;
+                
+                const mesFiltro = filtroMesAtual || String(new Date().getMonth() + 1).padStart(2, '0');
+                const anoFiltro = filtroAnoAtual || new Date().getFullYear();
+                
+                // Arrays para as tabelas
+                const receitasMesArray = [];
+                const despesasMesArray = [];
+                
+                // Processar orçamentos (receitas)
+                orcamentosSnapshot.forEach(doc => {
+                    const orc = doc.data();
+                    const valor = parseFloat(orc.valorTotal) || 0;
+                    const dataPagamento = orc.dataPagamento || '';
+                    
+                    // Verificar se é pago
+                    if (orc.status === 'pago') {
+                        receitaTotal += valor;
+                        
+                        // Verificar se é do mês filtrado
+                        if (dataPagamento && verificarMesAno(dataPagamento, mesFiltro, anoFiltro)) {
+                            receitaMes += valor;
+                            receitasMesArray.push({
+                                numero: orc.numero || 'N/A',
+                                cliente: orc.clienteNome || 'Cliente',
+                                valor: valor,
+                                data: dataPagamento
+                            });
+                        }
+                    }
+                });
+                
+                // Processar despesas
+                despesasSnapshot.forEach(doc => {
+                    const despesa = doc.data();
+                    const valor = parseFloat(despesa.valor) || 0;
+                    const dataDespesa = despesa.data || '';
+                    
+                    despesasTotal += valor;
+                    
+                    // Verificar se é do mês filtrado
+                    if (dataDespesa && verificarMesAno(dataDespesa, mesFiltro, anoFiltro)) {
+                        despesasMes += valor;
+                        despesasMesArray.push({
+                            id: doc.id,
+                            descricao: despesa.descricao,
+                            valor: valor,
+                            data: dataDespesa,
+                            tipo: despesa.tipo
+                        });
+                    }
+                });
+                
+                // Calcular totais
+                const liquidoTotal = receitaTotal - despesasTotal;
+                const liquidoMes = receitaMes - despesasMes;
+                const margemTotal = receitaTotal > 0 ? ((liquidoTotal / receitaTotal) * 100) : 0;
+                const margemMes = receitaMes > 0 ? ((liquidoMes / receitaMes) * 100) : 0;
+                
+                // Atualizar estatísticas
+                atualizarEstatisticas(receitaTotal, despesasTotal, liquidoTotal, margemTotal);
+                atualizarEstatisticasMes(receitaMes, despesasMes, liquidoMes, margemMes);
+                
+                // Atualizar tabelas
+                atualizarTabelaReceitas(receitasMesArray);
+                atualizarTabelaDespesas(despesasMesArray);
+            }
+            
+            // Verificar se data pertence ao mês/ano
+            function verificarMesAno(dataString, mes, ano) {
+                try {
+                    const data = new Date(dataString);
+                    const dataMes = String(data.getMonth() + 1).padStart(2, '0');
+                    const dataAno = data.getFullYear();
+                    
+                    return dataMes === mes && dataAno.toString() === ano.toString();
+                } catch (e) {
+                    return false;
+                }
+            }
+            
+            // Atualizar estatísticas gerais
+            function atualizarEstatisticas(receita, despesas, liquido, margem) {
+                document.getElementById('receita-total').textContent = formatarMoeda(receita);
+                document.getElementById('despesas-total').textContent = formatarMoeda(despesas);
+                
+                const liquidoElement = document.getElementById('liquido-total');
+                liquidoElement.textContent = formatarMoeda(liquido);
+                liquidoElement.style.color = liquido >= 0 ? '#28a745' : '#dc3545';
+                
+                const margemElement = document.getElementById('margem-lucro');
+                margemElement.textContent = `${margem.toFixed(1)}%`;
+                margemElement.style.color = margem >= 0 ? '#28a745' : '#dc3545';
+            }
+            
+            // Atualizar estatísticas do mês
+            function atualizarEstatisticasMes(receita, despesas, liquido, margem) {
+                document.getElementById('receita-mes').textContent = formatarMoeda(receita);
+                document.getElementById('despesas-mes').textContent = formatarMoeda(despesas);
+                
+                const liquidoElement = document.getElementById('liquido-mes');
+                liquidoElement.textContent = formatarMoeda(liquido);
+                liquidoElement.style.color = liquido >= 0 ? '#28a745' : '#dc3545';
+                
+                const margemElement = document.getElementById('margem-mes');
+                margemElement.textContent = `${margem.toFixed(1)}%`;
+                margemElement.style.color = margem >= 0 ? '#28a745' : '#dc3545';
+            }
+            
+            // Atualizar tabela de receitas
+            function atualizarTabelaReceitas(receitas) {
+                const tbody = document.getElementById('receitas-mes-body');
+                const message = document.getElementById('receitas-message');
+                
+                tbody.innerHTML = '';
+                
+                if (receitas.length === 0) {
+                    tbody.innerHTML = `
+                        <tr><td colspan="4" class="text-center">Nenhuma receita neste período</td></tr>
+                    `;
+                    message.textContent = 'Nenhuma receita neste período';
+                } else {
+                    receitas.sort((a, b) => new Date(b.data) - new Date(a.data));
+                    
+                    receitas.forEach(receita => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${receita.numero}</td>
+                            <td>${receita.cliente}</td>
+                            <td>${formatarMoeda(receita.valor)}</td>
+                            <td>${formatarData(receita.data)}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                    
+                    message.textContent = `${receitas.length} receitas encontradas`;
+                }
+            }
+            
+            // Atualizar tabela de despesas
+            function atualizarTabelaDespesas(despesas) {
+                const tbody = document.getElementById('despesas-mes-body');
+                const message = document.getElementById('despesas-message');
+                
+                tbody.innerHTML = '';
+                
+                if (despesas.length === 0) {
+                    tbody.innerHTML = `
+                        <tr><td colspan="4" class="text-center">Nenhuma despesa neste período</td></tr>
+                    `;
+                    message.textContent = 'Nenhuma despesa neste período';
+                } else {
+                    despesas.sort((a, b) => new Date(b.data) - new Date(a.data));
+                    
+                    despesas.forEach(despesa => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${despesa.descricao}</td>
+                            <td>${formatarMoeda(despesa.valor)}</td>
+                            <td>${formatarData(despesa.data)}</td>
+                            <td>
+                                <button class="btn btn-sm btn-danger" onclick="excluirDespesa('${despesa.id}')">×</button>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                    
+                    message.textContent = `${despesas.length} despesas encontradas`;
+                }
+            }
+            
+            // Criar gráfico financeiro
+            function criarGraficoFinanceiro(orcamentosSnapshot, despesasSnapshot) {
+                const ctx = document.getElementById('grafico-financeiro').getContext('2d');
+                
+                // Obter dados dos últimos 6 meses
+                const mesesDados = obterDadosUltimosMeses(orcamentosSnapshot, despesasSnapshot, 6);
+                
+                // Destruir gráfico anterior se existir
+                if (chartFinanceiro) {
+                    chartFinanceiro.destroy();
+                }
+                
+                // Criar novo gráfico
+                chartFinanceiro = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: mesesDados.labels,
+                        datasets: [
+                            {
+                                label: 'Receitas',
+                                data: mesesDados.receitas,
+                                backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                                borderColor: 'rgba(40, 167, 69, 1)',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'Despesas',
+                                data: mesesDados.despesas,
+                                backgroundColor: 'rgba(220, 53, 69, 0.7)',
+                                borderColor: 'rgba(220, 53, 69, 1)',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'Lucro Líquido',
+                                data: mesesDados.lucros,
+                                type: 'line',
+                                fill: false,
+                                borderColor: 'rgba(0, 123, 255, 1)',
+                                backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                                tension: 0.4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return 'R$ ' + value.toLocaleString('pt-BR');
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        label += 'R$ ' + context.parsed.y.toLocaleString('pt-BR', {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2
+                                        });
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Obter dados dos últimos N meses
+            function obterDadosUltimosMeses(orcamentosSnapshot, despesasSnapshot, meses) {
+                const hoje = new Date();
+                const labels = [];
+                const receitas = [];
+                const despesas = [];
+                const lucros = [];
+                
+                for (let i = meses - 1; i >= 0; i--) {
+                    const data = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+                    const mes = String(data.getMonth() + 1).padStart(2, '0');
+                    const ano = data.getFullYear();
+                    
+                    // Nome do mês
+                    const mesesNomes = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 
+                                       'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+                    labels.push(`${mesesNomes[data.getMonth()]}/${ano.toString().slice(-2)}`);
+                    
+                    // Calcular receitas do mês
+                    let receitaMes = 0;
+                    let despesaMes = 0;
+                    
+                    orcamentosSnapshot.forEach(doc => {
+                        const orc = doc.data();
+                        if (orc.status === 'pago' && orc.dataPagamento) {
+                            if (verificarMesAno(orc.dataPagamento, mes, ano)) {
+                                receitaMes += parseFloat(orc.valorTotal) || 0;
+                            }
+                        }
+                    });
+                    
+                    // Calcular despesas do mês
+                    despesasSnapshot.forEach(doc => {
+                        const despesa = doc.data();
+                        if (despesa.data && verificarMesAno(despesa.data, mes, ano)) {
+                            despesaMes += parseFloat(despesa.valor) || 0;
+                        }
+                    });
+                    
+                    receitas.push(receitaMes);
+                    despesas.push(despesaMes);
+                    lucros.push(receitaMes - despesaMes);
+                }
+                
+                return { labels, receitas, despesas, lucros };
+            }
+            
+            // Funções auxiliares
+            function formatarData(dataInput) {
+                if (!dataInput) return '-';
+                
+                try {
+                    let data = new Date(dataInput);
+                    if (isNaN(data.getTime())) return '-';
+                    return data.toLocaleDateString('pt-BR');
+                } catch (error) {
+                    return '-';
+                }
+            }
+            
+            function formatarMoeda(valor) {
+                return 'R$ ' + valor.toLocaleString('pt-BR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+            }
+            
+            function formatarTipoDespesa(tipo) {
+                const tipos = {
+                    'pecas': 'Peças e Materiais',
+                    'aluguel': 'Aluguel',
+                    'energia': 'Energia',
+                    'agua': 'Água',
+                    'salario': 'Salários',
+                    'manutencao': 'Manutenção',
+                    'combustivel': 'Combustível',
+                    'outros': 'Outros'
+                };
+                return tipos[tipo] || tipo;
+            }
+            
+            // Configurar data atual
+            function configurarDataAtual() {
+                const hoje = new Date();
+                const ano = hoje.getFullYear();
+                const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+                const dia = String(hoje.getDate()).padStart(2, '0');
+                const dataFormatada = `${ano}-${mes}-${dia}`;
+                
+                document.getElementById('pagamento-data').value = dataFormatada;
+                document.getElementById('despesa-data').value = dataFormatada;
+            }
+            
+            // CORREÇÃO PRINCIPAL: Carregar orçamentos para pagamento
+            async function carregarOrcamentosParaPagamento() {
+                const select = document.getElementById('pagamento-orcamento');
+                if (!select) return;
+                
+                select.innerHTML = '<option value="">Carregando...</option>';
+                
+                try {
+                    // Primeiro, vamos buscar TODOS os orçamentos e filtrar no cliente
+                    const snapshot = await db.collection('orcamentos').get();
+                    
+                    let html = '<option value="">Selecione um orçamento</option>';
+                    let encontrados = 0;
+                    
+                    if (snapshot.empty) {
+                        html = '<option value="">Nenhum orçamento encontrado</option>';
+                    } else {
+                        snapshot.forEach(doc => {
+                            const orc = doc.data();
+                            const status = orc.status || '';
+                            
+                            // CORREÇÃO AQUI: Verificar status corretamente
+                            // O problema pode estar nos valores dos status no banco de dados
+                            // Vamos aceitar qualquer status que NÃO seja "pago"
+                            if (status !== 'pago' && status !== 'finalizado' && status !== 'cancelado') {
+                                encontrados++;
+                                const valor = parseFloat(orc.valorTotal) || 0;
+                                const numero = orc.numero || ('ORC-' + doc.id.substring(0, 8));
+                                const cliente = orc.clienteNome || orc.cliente || 'Cliente';
+                                
+                                html += `
+                                    <option value="${doc.id}" data-valor="${valor}">
+                                        ${numero} - R$ ${valor.toFixed(2)} - ${cliente} (${status})
+                                    </option>`;
+                            }
+                        });
+                        
+                        if (encontrados === 0) {
+                            html += '<option value="">Nenhum orçamento pendente encontrado</option>';
+                        }
+                    }
+                    
+                    select.innerHTML = html;
+                    
+                    // Configurar evento para carregar valor automaticamente
+                    select.addEventListener('change', function() {
+                        const selectedOption = this.options[this.selectedIndex];
+                        if (selectedOption.value) {
+                            const valor = selectedOption.getAttribute('data-valor') || 0;
+                            document.getElementById('pagamento-valor').value = parseFloat(valor);
+                        }
+                    });
+                    
+                } catch (error) {
+                    console.error('Erro ao carregar orçamentos:', error);
+                    select.innerHTML = '<option value="">Erro ao carregar orçamentos</option>';
+                }
+            }
+            
+            // Event Listeners
+            document.getElementById('btn-aplicar-filtro').addEventListener('click', function() {
+                filtroMesAtual = document.getElementById('filtro-mes').value;
+                filtroAnoAtual = document.getElementById('filtro-ano').value;
+                
+                if (filtroMesAtual === 'todos') {
+                    filtroMesAtual = null;
+                }
+                
+                carregarDadosFinanceirosCompletos();
+            });
+            
+            document.getElementById('btn-limpar-filtro').addEventListener('click', function() {
+                filtroMesAtual = null;
+                filtroAnoAtual = null;
+                document.getElementById('filtro-mes').value = String(new Date().getMonth() + 1).padStart(2, '0');
+                carregarDadosFinanceirosCompletos();
+            });
+            
+            document.getElementById('btn-registrar-pagamento').addEventListener('click', function() {
+                carregarOrcamentosParaPagamento();
+                document.getElementById('pagamento-modal').classList.add('active');
+            });
+            
+            document.getElementById('btn-nova-despesa').addEventListener('click', function() {
+                configurarDataAtual();
+                document.getElementById('despesa-modal').classList.add('active');
+            });
+            
+            document.getElementById('btn-ver-todas-despesas').addEventListener('click', function() {
+                carregarTodasDespesas();
+                document.getElementById('todas-despesas-modal').classList.add('active');
+            });
+            
+            // Fechar modais
+            document.querySelectorAll('.modal-close').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
+                });
+            });
+            
+            // Fechar ao clicar fora
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === modal) {
+                        modal.classList.remove('active');
+                    }
+                });
+            });
+            
+            // Formulário de pagamento
+            document.getElementById('form-pagamento').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const orcamentoId = document.getElementById('pagamento-orcamento').value;
+                const valor = parseFloat(document.getElementById('pagamento-valor').value);
+                const forma = document.getElementById('pagamento-forma').value;
+                const data = document.getElementById('pagamento-data').value;
+                const obs = document.getElementById('pagamento-observacoes').value;
+                
+                if (!orcamentoId || !valor || !forma || !data) {
+                    alert('Preencha todos os campos obrigatórios!');
+                    return;
+                }
+                
+                if (valor <= 0) {
+                    alert('O valor deve ser maior que zero!');
+                    return;
+                }
+                
+                try {
+                    await db.collection('orcamentos').doc(orcamentoId).update({
+                        status: 'pago',
+                        dataPagamento: data,
+                        formaPagamento: forma,
+                        observacoesPagamento: obs,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    
+                    alert('✅ Pagamento registrado com sucesso!');
+                    document.getElementById('pagamento-modal').classList.remove('active');
+                    this.reset();
+                    configurarDataAtual();
+                    
+                    // Recarregar dados
+                    carregarDadosFinanceirosCompletos();
+                    
+                } catch (error) {
+                    console.error('Erro ao registrar pagamento:', error);
+                    alert('❌ Erro ao registrar pagamento. Tente novamente.');
+                }
+            });
+            
+            // Formulário de despesa
+            document.getElementById('form-despesa').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const tipo = document.getElementById('despesa-tipo').value;
+                const desc = document.getElementById('despesa-descricao').value.trim();
+                const valor = parseFloat(document.getElementById('despesa-valor').value);
+                const data = document.getElementById('despesa-data').value;
+                const documento = document.getElementById('despesa-documento').value.trim();
+                
+                if (!tipo || !desc || isNaN(valor) || !data) {
+                    alert('Preencha todos os campos obrigatórios!');
+                    return;
+                }
+                
+                if (valor <= 0) {
+                    alert('O valor da despesa deve ser maior que zero!');
+                    return;
+                }
+                
+                try {
+                    await db.collection('despesas').add({
+                        tipo: tipo,
+                        descricao: desc,
+                        valor: valor,
+                        data: data,
+                        documento: documento || '',
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        userId: auth.currentUser.uid
+                    });
+                    
+                    alert('✅ Despesa salva com sucesso!');
+                    document.getElementById('despesa-modal').classList.remove('active');
+                    this.reset();
+                    configurarDataAtual();
+                    
+                    // Recarregar dados
+                    carregarDadosFinanceirosCompletos();
+                    
+                } catch (error) {
+                    console.error('Erro ao salvar despesa:', error);
+                    alert('❌ Erro ao salvar despesa. Tente novamente.');
+                }
+            });
+            
+            // Carregar todas as despesas para modal
+            async function carregarTodasDespesas() {
+                const todasDespesasBody = document.getElementById('todas-despesas-body');
+                if (!todasDespesasBody) return;
+                
+                todasDespesasBody.innerHTML = '<tr><td colspan="6" class="text-center">Carregando...</td></tr>';
+                
+                try {
+                    const snapshot = await db.collection('despesas').orderBy('data', 'desc').get();
+                    
+                    if (snapshot.empty) {
+                        todasDespesasBody.innerHTML = `
+                            <tr><td colspan="6" class="text-center">Nenhuma despesa registrada</td></tr>
+                        `;
+                    } else {
+                        todasDespesasBody.innerHTML = '';
+                        let totalGeral = 0;
+                        
+                        snapshot.forEach(doc => {
+                            const despesa = doc.data();
+                            totalGeral += parseFloat(despesa.valor) || 0;
+                            
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${formatarData(despesa.data)}</td>
+                                <td>${formatarTipoDespesa(despesa.tipo)}</td>
+                                <td>${despesa.descricao}</td>
+                                <td>${formatarMoeda(parseFloat(despesa.valor))}</td>
+                                <td>${despesa.documento || '-'}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-danger" onclick="excluirDespesa('${doc.id}')">Excluir</button>
+                                </td>
+                            `;
+                            todasDespesasBody.appendChild(row);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Erro ao carregar todas as despesas:', error);
+                    todasDespesasBody.innerHTML = `
+                        <tr><td colspan="6" class="text-center">Erro ao carregar despesas</td></tr>
+                    `;
+                }
+            }
+            
+            // Filtrar despesas no modal
+            document.getElementById('btn-filtrar-modal')?.addEventListener('click', async function() {
+                const mes = document.getElementById('filtro-mes-modal').value;
+                const ano = document.getElementById('filtro-ano-modal').value;
+                
+                const todasDespesasBody = document.getElementById('todas-despesas-body');
+                todasDespesasBody.innerHTML = '<tr><td colspan="6" class="text-center">Carregando...</td></tr>';
+                
+                try {
+                    let query = db.collection('despesas');
+                    
+                    // Se ambos os filtros estão vazios, mostre tudo
+                    if (!mes && !ano) {
+                        const snapshot = await query.orderBy('data', 'desc').get();
+                        atualizarTabelaDespesasModal(snapshot, mes, ano);
+                    } else {
+                        // Carregue todas e filtre no cliente
+                        const snapshot = await query.orderBy('data', 'desc').get();
+                        atualizarTabelaDespesasModal(snapshot, mes, ano);
+                    }
+                    
+                } catch (error) {
+                    console.error('Erro ao filtrar despesas:', error);
+                    todasDespesasBody.innerHTML = `
+                        <tr><td colspan="6" class="text-center">Erro ao filtrar despesas</td></tr>
+                    `;
+                }
+            });
+            
+            function atualizarTabelaDespesasModal(snapshot, filtroMes, filtroAno) {
+                const todasDespesasBody = document.getElementById('todas-despesas-body');
+                
+                if (snapshot.empty) {
+                    todasDespesasBody.innerHTML = `
+                        <tr><td colspan="6" class="text-center">Nenhuma despesa registrada</td></tr>
+                    `;
+                } else {
+                    todasDespesasBody.innerHTML = '';
+                    let totalFiltrado = 0;
+                    let encontradas = 0;
+                    
+                    snapshot.forEach(doc => {
+                        const despesa = doc.data();
+                        const dataDespesa = new Date(despesa.data);
+                        const mesDespesa = String(dataDespesa.getMonth() + 1).padStart(2, '0');
+                        const anoDespesa = dataDespesa.getFullYear();
+                        
+                        // Aplicar filtro no cliente
+                        const passarMes = !filtroMes || filtroMes === mesDespesa;
+                        const passarAno = !filtroAno || filtroAno === anoDespesa.toString();
+                        
+                        if (passarMes && passarAno) {
+                            encontradas++;
+                            totalFiltrado += parseFloat(despesa.valor) || 0;
+                            
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${formatarData(despesa.data)}</td>
+                                <td>${formatarTipoDespesa(despesa.tipo)}</td>
+                                <td>${despesa.descricao}</td>
+                                <td>${formatarMoeda(parseFloat(despesa.valor))}</td>
+                                <td>${despesa.documento || '-'}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-danger" onclick="excluirDespesa('${doc.id}')">Excluir</button>
+                                </td>
+                            `;
+                            todasDespesasBody.appendChild(row);
+                        }
+                    });
+                    
+                    if (encontradas === 0) {
+                        todasDespesasBody.innerHTML = `
+                            <tr><td colspan="6" class="text-center">Nenhuma despesa encontrada para os filtros selecionados</td></tr>
+                        `;
+                    }
+                }
+            }
+            
+            // Configurar data inicial
+            configurarDataAtual();
+        });
+        
+        // Funções globais
+        window.registrarPagamento = function(id, valor) {
+            const select = document.getElementById('pagamento-orcamento');
+            if (select) {
+                // Primeiro carrega os orçamentos
+                document.getElementById('pagamento-modal').classList.add('active');
+                setTimeout(() => {
+                    // Depois de um pequeno delay, seleciona o orçamento
+                    select.value = id;
+                    document.getElementById('pagamento-valor').value = valor;
+                }, 300);
+            } else {
+                document.getElementById('pagamento-modal').classList.add('active');
+            }
+        };
+        
+        window.excluirDespesa = async function(id) {
+            if (confirm('Tem certeza que deseja excluir esta despesa? Esta ação não pode ser desfeita.')) {
+                try {
+                    await db.collection('despesas').doc(id).delete();
+                    alert('✅ Despesa excluída com sucesso!');
+                    
+                    // Recarregar apenas os dados necessários
+                    const event = new Event('DOMContentLoaded', { bubbles: true });
+                    document.dispatchEvent(event);
+                    
+                } catch (error) {
+                    console.error('Erro ao excluir despesa:', error);
+                    alert('❌ Erro ao excluir despesa. Tente novamente.');
+                }
+            }
+        };
+    </script>
+</body>
+</html>

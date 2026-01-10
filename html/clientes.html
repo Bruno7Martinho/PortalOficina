@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clientes - Alexandre Reparos Automotivos</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header class="main-header">
+            <div class="logo">
+                <h1>Alexandre Reparos Automotivos</h1>
+            </div>
+            <nav class="main-nav">
+                <ul>
+                    <li><a href="dashboard.html">Dashboard</a></li>
+                    <li><a href="clientes.html" class="active">Clientes</a></li>
+                    <li><a href="veiculos.html">Veículos</a></li>
+                    <li><a href="orcamentos.html">Orçamentos</a></li>
+                    <li><a href="financeiro.html">Financeiro</a></li>
+                </ul>
+            </nav>
+            <div class="user-info" id="user-info">
+                <!-- Preenchido por JavaScript -->
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="dashboard-section">
+                <div class="section-header">
+                    <h2>Gerenciamento de Clientes</h2>
+                    <button id="btn-novo-cliente" class="btn btn-success">+ Novo Cliente</button>
+                </div>
+                
+                <div class="table-container">
+                    <div class="table-responsive">
+                        <table class="data-table" id="clientes-table">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Telefone</th>
+                                    <th>E-mail</th>
+                                    <th>CPF</th>
+                                    <th>Endereço</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="clientes-body">
+                                <!-- Dados serão carregados aqui -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="loader" id="clientes-loader"></div>
+            </div>
+        </main>
+
+        <footer class="main-footer">
+            <p>&copy; 2025 Alexandre Reparos Automotivos. Todos os direitos reservados.</p>
+        </footer>
+    </div>
+
+    <!-- Modal para cliente -->
+    <div id="cliente-modal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close">&times;</button>
+            <h2 class="modal-title" id="modal-title">Novo Cliente</h2>
+            <form id="form-cliente">
+                <div class="form-group">
+                    <label for="cliente-nome">Nome Completo *</label>
+                    <input type="text" id="cliente-nome" required>
+                </div>
+                <div class="form-group">
+                    <label for="cliente-cpf">CPF</label>
+                    <input type="text" id="cliente-cpf" placeholder="000.000.000-00">
+                </div>
+                <div class="form-group">
+                    <label for="cliente-telefone">Telefone *</label>
+                    <input type="tel" id="cliente-telefone" required placeholder="(51) 99999-9999">
+                </div>
+                <div class="form-group">
+                    <label for="cliente-email">E-mail</label>
+                    <input type="email" id="cliente-email">
+                </div>
+                <div class="form-group">
+                    <label for="cliente-endereco">Endereço</label>
+                    <textarea id="cliente-endereco" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="cliente-observacoes">Observações</label>
+                    <textarea id="cliente-observacoes" rows="3"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" id="btn-salvar-cliente">Salvar Cliente</button>
+                    <button type="button" class="btn btn-secondary modal-close">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../js/firebase-config.js"></script>
+    <script>
+        // Gerenciamento de Clientes
+        document.addEventListener('DOMContentLoaded', function() {
+            // Verificar autenticação
+            auth.onAuthStateChanged(function(user) {
+                if (user) {
+                    loadUserInfo(user);
+                    loadClientes();
+                } else {
+                    window.location.href = 'login.html';
+                }
+            });
+            
+            // Configurar informações do usuário
+            function loadUserInfo(user) {
+                const userInfo = document.getElementById('user-info');
+                if (userInfo) {
+                    userInfo.innerHTML = `
+                        <span class="user-email">${user.email}</span>
+                        <button id="logout-btn" class="btn btn-sm btn-danger">Sair</button>
+                    `;
+                    
+                    document.getElementById('logout-btn').addEventListener('click', function() {
+                        auth.signOut().then(() => {
+                            window.location.href = 'login.html';
+                        });
+                    });
+                }
+            }
+            
+            // Elementos do DOM
+            const clientesBody = document.getElementById('clientes-body');
+            const clientesLoader = document.getElementById('clientes-loader');
+            const clienteModal = document.getElementById('cliente-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const formCliente = document.getElementById('form-cliente');
+            let clienteAtualId = null;
+            
+            // Carregar clientes
+            function loadClientes() {
+                clientesLoader.style.display = 'block';
+                clientesBody.innerHTML = '';
+                
+                db.collection('clientes').orderBy('nome').get()
+                    .then((snapshot) => {
+                        clientesLoader.style.display = 'none';
+                        
+                        if (snapshot.empty) {
+                            clientesBody.innerHTML = `
+                                <tr>
+                                    <td colspan="6" class="text-center">Nenhum cliente cadastrado.</td>
+                                </tr>
+                            `;
+                            return;
+                        }
+                        
+                        snapshot.forEach((doc) => {
+                            const cliente = doc.data();
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${cliente.nome || ''}</td>
+                                <td>${cliente.telefone || ''}</td>
+                                <td>${cliente.email || ''}</td>
+                                <td>${cliente.cpf || ''}</td>
+                                <td>${cliente.endereco ? cliente.endereco.substring(0, 30) + '...' : ''}</td>
+                                <td class="actions">
+                                    <button class="btn btn-sm btn-primary" onclick="editarCliente('${doc.id}')">Editar</button>
+                                    <button class="btn btn-sm btn-danger" onclick="excluirCliente('${doc.id}')">Excluir</button>
+                                </td>
+                            `;
+                            clientesBody.appendChild(row);
+                        });
+                    })
+                    .catch((error) => {
+                        console.error('Erro ao carregar clientes:', error);
+                        clientesLoader.style.display = 'none';
+                        clientesBody.innerHTML = `
+                            <tr>
+                                <td colspan="6" class="text-center">Erro ao carregar clientes.</td>
+                            </tr>
+                        `;
+                    });
+            }
+            
+            // Configurar eventos
+            document.getElementById('btn-novo-cliente').addEventListener('click', function() {
+                clienteAtualId = null;
+                modalTitle.textContent = 'Novo Cliente';
+                document.getElementById('btn-salvar-cliente').textContent = 'Salvar Cliente';
+                
+                // Limpar formulário
+                formCliente.reset();
+                
+                // Mostrar modal
+                clienteModal.classList.add('active');
+            });
+            
+            // Fechar modal
+            document.querySelectorAll('.modal-close').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    clienteModal.classList.remove('active');
+                });
+            });
+            
+            // Fechar modal ao clicar fora
+            clienteModal.addEventListener('click', function(e) {
+                if (e.target === clienteModal) {
+                    clienteModal.classList.remove('active');
+                }
+            });
+            
+            // Salvar cliente
+            formCliente.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const clienteData = {
+                    nome: document.getElementById('cliente-nome').value,
+                    cpf: document.getElementById('cliente-cpf').value,
+                    telefone: document.getElementById('cliente-telefone').value,
+                    email: document.getElementById('cliente-email').value,
+                    endereco: document.getElementById('cliente-endereco').value,
+                    observacoes: document.getElementById('cliente-observacoes').value,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                if (clienteAtualId) {
+                    // Atualizar cliente existente
+                    db.collection('clientes').doc(clienteAtualId).update(clienteData)
+                        .then(() => {
+                            alert('Cliente atualizado com sucesso!');
+                            clienteModal.classList.remove('active');
+                            loadClientes();
+                        })
+                        .catch((error) => {
+                            console.error('Erro ao atualizar cliente:', error);
+                            alert('Erro ao atualizar cliente. Tente novamente.');
+                        });
+                } else {
+                    // Adicionar novo cliente
+                    clienteData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                    
+                    db.collection('clientes').add(clienteData)
+                        .then(() => {
+                            alert('Cliente salvo com sucesso!');
+                            clienteModal.classList.remove('active');
+                            loadClientes();
+                        })
+                        .catch((error) => {
+                            console.error('Erro ao salvar cliente:', error);
+                            alert('Erro ao salvar cliente. Tente novamente.');
+                        });
+                }
+            });
+            
+            // Expor funções para os botões na tabela
+            window.editarCliente = function(clienteId) {
+                db.collection('clientes').doc(clienteId).get()
+                    .then((doc) => {
+                        if (!doc.exists) {
+                            alert('Cliente não encontrado.');
+                            return;
+                        }
+                        
+                        const cliente = doc.data();
+                        clienteAtualId = clienteId;
+                        modalTitle.textContent = 'Editar Cliente';
+                        document.getElementById('btn-salvar-cliente').textContent = 'Atualizar Cliente';
+                        
+                        // Preencher formulário
+                        document.getElementById('cliente-nome').value = cliente.nome || '';
+                        document.getElementById('cliente-cpf').value = cliente.cpf || '';
+                        document.getElementById('cliente-telefone').value = cliente.telefone || '';
+                        document.getElementById('cliente-email').value = cliente.email || '';
+                        document.getElementById('cliente-endereco').value = cliente.endereco || '';
+                        document.getElementById('cliente-observacoes').value = cliente.observacoes || '';
+                        
+                        // Mostrar modal
+                        clienteModal.classList.add('active');
+                    })
+                    .catch((error) => {
+                        console.error('Erro ao carregar cliente:', error);
+                        alert('Erro ao carregar dados do cliente.');
+                    });
+            };
+            
+            window.excluirCliente = function(clienteId) {
+                if (confirm('Tem certeza que deseja excluir este cliente?')) {
+                    db.collection('clientes').doc(clienteId).delete()
+                        .then(() => {
+                            alert('Cliente excluído com sucesso!');
+                            loadClientes();
+                        })
+                        .catch((error) => {
+                            console.error('Erro ao excluir cliente:', error);
+                            alert('Erro ao excluir cliente. Tente novamente.');
+                        });
+                }
+            };
+        });
+    </script>
+</body>
+</html>

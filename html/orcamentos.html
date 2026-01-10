@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orçamentos - Alexandre Reparos Automotivos</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <!-- jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <header class="main-header">
+            <div class="logo">
+                <h1>Alexandre Reparos Automotivos</h1>
+            </div>
+            <nav class="main-nav">
+                <ul>
+                    <li><a href="dashboard.html">Dashboard</a></li>
+                    <li><a href="clientes.html">Clientes</a></li>
+                    <li><a href="veiculos.html">Veículos</a></li>
+                    <li><a href="orcamentos.html" class="active">Orçamentos</a></li>
+                    <li><a href="financeiro.html">Financeiro</a></li>
+                </ul>
+            </nav>
+            <div class="user-info" id="user-info">
+                <!-- Preenchido por JavaScript -->
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="dashboard-section">
+                <div class="section-header">
+                    <h2>Gerenciamento de Orçamentos</h2>
+                    <button id="btn-novo-orcamento" class="btn btn-success">+ Novo Orçamento</button>
+                </div>
+
+                <div class="table-container">
+                    <div class="table-responsive">
+                        <table class="data-table" id="orcamentos-table">
+                            <thead>
+                                <tr>
+                                    <th>Número</th>
+                                    <th>Cliente</th>
+                                    <th>Veículo</th>
+                                    <th>Valor Total</th>
+                                    <th>Status</th>
+                                    <th>Data</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="orcamentos-body">
+                                <!-- Dados serão carregados aqui -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="loader" id="orcamentos-loader"></div>
+            </div>
+        </main>
+
+        <footer class="main-footer">
+            <p>&copy; 2025 Alexandre Reparos Automotivos. Todos os direitos reservados.</p>
+        </footer>
+    </div>
+
+    <!-- Modal para orçamento -->
+    <div id="orcamento-modal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <button class="modal-close">&times;</button>
+            <h2 class="modal-title" id="modal-title-orcamento">Novo Orçamento</h2>
+            <form id="form-orcamento">
+                <div class="form-row" style="display: flex; gap: 20px; margin-bottom: 20px;">
+                    <div class="form-group" style="flex: 1;">
+                        <label for="orcamento-numero">Número do Orçamento</label>
+                        <input type="text" id="orcamento-numero" readonly style="background-color: #f5f5f5;">
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label for="orcamento-status">Status</label>
+                        <select id="orcamento-status">
+                            <option value="pendente">Pendente</option>
+                            <option value="aprovado">Aprovado</option>
+                            <option value="recusado">Recusado</option>
+                            <option value="pago">Pago</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row" style="display: flex; gap: 20px; margin-bottom: 20px;">
+                    <div class="form-group" style="flex: 1;">
+                        <label for="orcamento-cliente">Cliente *</label>
+                        <select id="orcamento-cliente" required>
+                            <option value="">Carregando clientes...</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label for="orcamento-veiculo">Veículo *</label>
+                        <select id="orcamento-veiculo" required>
+                            <option value="">Carregando veículos...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="orcamento-descricao">Descrição do Serviço</label>
+                    <textarea id="orcamento-descricao" rows="4"
+                        placeholder="Descreva os serviços a serem realizados"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Itens do Orçamento</label>
+                    <div id="orcamento-itens">
+                        <div class="item-orcamento">
+                            <input type="text" placeholder="Descrição do item" class="item-descricao" style="flex: 2;">
+                            <input type="number" placeholder="Quantidade" class="item-quantidade" min="1" value="1"
+                                style="flex: 1;">
+                            <input type="number" placeholder="Valor unitário" class="item-valor" step="0.01" min="0"
+                                style="flex: 1;">
+                            <button type="button" class="btn btn-sm btn-danger remover-item">×</button>
+                        </div>
+                    </div>
+                    <button type="button" id="btn-add-item" class="btn btn-sm btn-secondary" style="margin-top: 10px;">+
+                        Adicionar Item</button>
+                </div>
+
+                <div class="form-group">
+                    <label for="orcamento-observacoes">Observações</label>
+                    <textarea id="orcamento-observacoes" rows="3"></textarea>
+                </div>
+
+                <div class="form-group" style="text-align: right; font-size: 1.2rem; font-weight: bold;">
+                    <label>Total: <span id="orcamento-total">R$ 0,00</span></label>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" id="btn-salvar-orcamento">Salvar Orçamento</button>
+                    <button type="button" class="btn btn-secondary modal-close">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../js/firebase-config.js"></script>
+    <script>
+        // Gerenciamento de Orçamentos
+        document.addEventListener('DOMContentLoaded', function () {
+            // Verificar autenticação
+            auth.onAuthStateChanged(function (user) {
+                if (user) {
+                    loadUserInfo(user);
+                    loadOrcamentos();
+                    loadDadosParaFormulario();
+                } else {
+                    window.location.href = 'login.html';
+                }
+            });
+
+            // Configurar informações do usuário
+            function loadUserInfo(user) {
+                const userInfo = document.getElementById('user-info');
+                if (userInfo) {
+                    userInfo.innerHTML = `
+                        <span class="user-email">${user.email}</span>
+                        <button id="logout-btn" class="btn btn-sm btn-danger">Sair</button>
+                    `;
+
+                    document.getElementById('logout-btn').addEventListener('click', function () {
+                        auth.signOut().then(() => {
+                            window.location.href = 'login.html';
+                        });
+                    });
+                }
+            }
+
+            // Elementos do DOM
+            const orcamentosBody = document.getElementById('orcamentos-body');
+            const orcamentosLoader = document.getElementById('orcamentos-loader');
+            const orcamentoModal = document.getElementById('orcamento-modal');
+            const modalTitle = document.getElementById('modal-title-orcamento');
+            const formOrcamento = document.getElementById('form-orcamento');
+            const selectCliente = document.getElementById('orcamento-cliente');
+            const selectVeiculo = document.getElementById('orcamento-veiculo');
+            const itensContainer = document.getElementById('orcamento-itens');
+            let orcamentoAtualId = null;
+            let clientesMap = {};
+            let veiculosMap = {};
+
+            // Carregar dados para o formulário
+            function loadDadosParaFormulario() {
+                // Carregar clientes
+                db.collection('clientes').orderBy('nome').get()
+                    .then((snapshot) => {
+                        selectCliente.innerHTML = '<option value="">Selecione um cliente</option>';
+                        clientesMap = {};
+
+                        snapshot.forEach((doc) => {
+                            const cliente = doc.data();
+                            const option = document.createElement('option');
+                            option.value = doc.id;
+                            option.textContent = cliente.nome;
+                            selectCliente.appendChild(option);
+                            clientesMap[doc.id] = cliente.nome;
+                        });
+                    })
+                    .catch((error) => {
+                        console.error('Erro ao carregar clientes:', error);
+                        selectCliente.innerHTML = '<option value="">Erro ao carregar clientes</option>';
+                    });
+
+                // Carregar veículos
+                db.collection('veiculos').orderBy('placa').get()
+                    .then((snapshot) => {
+                        selectVeiculo.innerHTML = '<option value="">Selecione um veículo</option>';
+                        veiculosMap = {};
+
+                        snapshot.forEach((doc) => {
+                            const veiculo = doc.data();
+                            const option = document.createElement('option');
+                            option.value = doc.id;
+                            option.textContent = `${veiculo.placa} - ${veiculo.marca} ${veiculo.modelo}`;
+                            selectVeiculo.appendChild(option);
+                            veiculosMap[doc.id] = `${veiculo.placa} - ${veiculo.marca} ${veiculo.modelo}`;
+                        });
+                    })
+                    .catch((error) => {
+                        console.error('Erro ao carregar veículos:', error);
+                        selectVeiculo.innerHTML = '<option value="">Erro ao carregar veículos</option>';
+                    });
+            }
+
+            // Carregar orçamentos
+            function loadOrcamentos() {
+                orcamentosLoader.style.display = 'block';
+                orcamentosBody.innerHTML = '';
+
+                Promise.all([
+                    db.collection('orcamentos').orderBy('data', 'desc').get(),
+                    db.collection('clientes').get(),
+                    db.collection('veiculos').get()
+                ])
+                    .then(([orcamentosSnapshot, clientesSnapshot, veiculosSnapshot]) => {
+                        orcamentosLoader.style.display = 'none';
+
+                        // Criar mapas
+                        const clientesMapLocal = {};
+                        clientesSnapshot.forEach(doc => {
+                            clientesMapLocal[doc.id] = doc.data().nome;
+                        });
+
+                        const veiculosMapLocal = {};
+                        veiculosSnapshot.forEach(doc => {
+                            const veiculo = doc.data();
+                            veiculosMapLocal[doc.id] = `${veiculo.placa} - ${veiculo.marca} ${veiculo.modelo}`;
+                        });
+
+                        if (orcamentosSnapshot.empty) {
+                            orcamentosBody.innerHTML = `
+                            <tr>
+                                <td colspan="7" class="text-center">Nenhum orçamento cadastrado.</td>
+                            </tr>
+                        `;
+                            return;
+                        }
+
+                        orcamentosSnapshot.forEach((doc) => {
+                            const orcamento = doc.data();
+                            const dataFormatada = orcamento.data ?
+                                orcamento.data.toDate().toLocaleDateString('pt-BR') : '';
+
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                            <td>${orcamento.numero || ''}</td>
+                            <td>${clientesMapLocal[orcamento.clienteId] || 'Não informado'}</td>
+                            <td>${veiculosMapLocal[orcamento.veiculoId] || 'Não informado'}</td>
+                            <td>R$ ${(orcamento.valorTotal || 0).toFixed(2)}</td>
+                            <td><span class="status-badge status-${orcamento.status || 'pendente'}">${getStatusText(orcamento.status)}</span></td>
+                            <td>${dataFormatada}</td>
+                            <td class="actions">
+                                <button class="btn btn-sm btn-primary" onclick="visualizarOrcamento('${doc.id}')">Ver</button>
+                                <button class="btn btn-sm btn-warning" onclick="editarOrcamento('${doc.id}')">Editar</button>
+                                <button class="btn btn-sm btn-success" data-orcamento-id="${doc.id}">PDF</button>
+                                <button class="btn btn-sm btn-danger" onclick="excluirOrcamento('${doc.id}')">Excluir</button>
+                            </td>
+                        `;
+                            orcamentosBody.appendChild(row);
+                        });
+
+                        // Adicionar eventos para os botões PDF
+                        document.querySelectorAll('.btn-success[data-orcamento-id]').forEach(button => {
+                            button.addEventListener('click', function () {
+                                const orcamentoId = this.getAttribute('data-orcamento-id');
+                                gerarPDF(orcamentoId, this);
+                            });
+                        });
+                    })
+                    .catch((error) => {
+                        console.error('Erro ao carregar orçamentos:', error);
+                        orcamentosLoader.style.display = 'none';
+                        orcamentosBody.innerHTML = `
+                        <tr>
+                            <td colspan="7" class="text-center">Erro ao carregar orçamentos.</td>
+                        </tr>
+                    `;
+                    });
+            }
+
+            // Obter texto do status
+            function getStatusText(status) {
+                const statusMap = {
+                    'pendente': 'Pendente',
+                    'aprovado': 'Aprovado',
+                    'recusado': 'Recusado',
+                    'pago': 'Pago'
+                };
+                return statusMap[status] || 'Pendente';
+            }
+
+            // Gerar número automático para orçamento
+            function gerarNumeroOrcamento() {
+                const ano = new Date().getFullYear();
+                const numeroInput = document.getElementById('orcamento-numero');
+
+                db.collection('orcamentos')
+                    .where('numero', '>=', `ORC-${ano}-0001`)
+                    .where('numero', '<=', `ORC-${ano}-9999`)
+                    .orderBy('numero', 'desc')
+                    .limit(1)
+                    .get()
+                    .then((snapshot) => {
+                        let proximoNumero = 1;
+
+                        if (!snapshot.empty) {
+                            const ultimoOrcamento = snapshot.docs[0].data();
+                            const ultimoNumero = ultimoOrcamento.numero;
+                            const partes = ultimoNumero.split('-');
+                            if (partes.length === 3 && partes[2]) {
+                                proximoNumero = parseInt(partes[2]) + 1;
+                            }
+                        }
+
+                        const numeroFormatado = `ORC-${ano}-${proximoNumero.toString().padStart(4, '0')}`;
+                        numeroInput.value = numeroFormatado;
+                    })
+                    .catch((error) => {
+                        console.error('Erro ao gerar número do orçamento:', error);
+                        numeroInput.value = `ORC-${ano}-0001`;
+                    });
+            }
+
+            // Adicionar item ao orçamento
+            function adicionarItemOrcamento() {
+                const novoItem = document.createElement('div');
+                novoItem.className = 'item-orcamento';
+                novoItem.style.display = 'flex';
+                novoItem.style.gap = '10px';
+                novoItem.style.marginBottom = '10px';
+                novoItem.style.alignItems = 'center';
+                novoItem.innerHTML = `
+                    <input type="text" placeholder="Descrição do item" class="item-descricao" style="flex: 2;">
+                    <input type="number" placeholder="Quantidade" class="item-quantidade" min="1" value="1" style="flex: 1;">
+                    <input type="number" placeholder="Valor unitário" class="item-valor" step="0.01" min="0" style="flex: 1;">
+                    <button type="button" class="btn btn-sm btn-danger remover-item">×</button>
+                `;
+                itensContainer.appendChild(novoItem);
+
+                // Adicionar evento para calcular total quando o valor mudar
+                const inputs = novoItem.querySelectorAll('.item-quantidade, .item-valor');
+                inputs.forEach(input => {
+                    input.addEventListener('input', calcularTotalOrcamento);
+                });
+
+                // Adicionar evento para remover item
+                novoItem.querySelector('.remover-item').addEventListener('click', function () {
+                    if (itensContainer.children.length > 1) {
+                        novoItem.remove();
+                        calcularTotalOrcamento();
+                    }
+                });
+            }
+
+            // Calcular total do orçamento
+            function calcularTotalOrcamento() {
+                const itens = document.querySelectorAll('.item-orcamento');
+                let total = 0;
+
+                itens.forEach(item => {
+                    const quantidade = parseFloat(item.querySelector('.item-quantidade').value) || 0;
+                    const valor = parseFloat(item.querySelector('.item-valor').value) || 0;
+                    total += quantidade * valor;
+                });
+
+                document.getElementById('orcamento-total').textContent = `R$ ${total.toFixed(2)}`;
+            }
+
+            // Carregar dados do orçamento para edição
+            function carregarOrcamentoParaEdicao(orcamentoId) {
+                db.collection('orcamentos').doc(orcamentoId).get()
+                    .then((doc) => {
+                        if (!doc.exists) {
+                            alert('Orçamento não encontrado.');
+                            return;
+                        }
+
+                        const orcamento = doc.data();
+                        orcamentoAtualId = orcamentoId;
+
+                        // Atualizar título
+                        modalTitle.textContent = `Editar Orçamento: ${orcamento.numero}`;
+                        document.getElementById('btn-salvar-orcamento').textContent = 'Atualizar Orçamento';
+
+                        // Preencher campos
+                        document.getElementById('orcamento-numero').value = orcamento.numero;
+                        document.getElementById('orcamento-status').value = orcamento.status || 'pendente';
+                        document.getElementById('orcamento-cliente').value = orcamento.clienteId || '';
+                        document.getElementById('orcamento-veiculo').value = orcamento.veiculoId || '';
+                        document.getElementById('orcamento-descricao').value = orcamento.descricao || '';
+                        document.getElementById('orcamento-observacoes').value = orcamento.observacoes || '';
+
+                        // Limpar e carregar itens
+                        itensContainer.innerHTML = '';
+
+                        if (orcamento.itens && orcamento.itens.length > 0) {
+                            orcamento.itens.forEach((item, index) => {
+                                const itemDiv = document.createElement('div');
+                                itemDiv.className = 'item-orcamento';
+                                itemDiv.style.display = 'flex';
+                                itemDiv.style.gap = '10px';
+                                itemDiv.style.marginBottom = '10px';
+                                itemDiv.style.alignItems = 'center';
+
+                                itemDiv.innerHTML = `
+                                    <input type="text" placeholder="Descrição do item" class="item-descricao" style="flex: 2;" value="${item.descricao || ''}">
+                                    <input type="number" placeholder="Quantidade" class="item-quantidade" min="1" value="${item.quantidade || 1}" style="flex: 1;">
+                                    <input type="number" placeholder="Valor unitário" class="item-valor" step="0.01" min="0" value="${item.valorUnitario || 0}" style="flex: 1;">
+                                    <button type="button" class="btn btn-sm btn-danger remover-item">×</button>
+                                `;
+
+                                itensContainer.appendChild(itemDiv);
+
+                                // Adicionar eventos
+                                const inputs = itemDiv.querySelectorAll('.item-quantidade, .item-valor');
+                                inputs.forEach(input => {
+                                    input.addEventListener('input', calcularTotalOrcamento);
+                                });
+
+                                itemDiv.querySelector('.remover-item').addEventListener('click', function () {
+                                    if (itensContainer.children.length > 1) {
+                                        itemDiv.remove();
+                                        calcularTotalOrcamento();
+                                    }
+                                });
+                            });
+                        } else {
+                            // Adicionar um item vazio se não houver itens
+                            adicionarItemOrcamento();
+                        }
+
+                        // Calcular total
+                        calcularTotalOrcamento();
+
+                        // Mostrar modal
+                        orcamentoModal.classList.add('active');
+                    })
+                    .catch((error) => {
+                        console.error('Erro ao carregar orçamento:', error);
+                        alert('Erro ao carregar dados do orçamento.');
+                    });
+            }
+
+            // Configurar eventos
+            document.getElementById('btn-novo-orcamento').addEventListener('click', function () {
+                orcamentoAtualId = null;
+                modalTitle.textContent = 'Novo Orçamento';
+                document.getElementById('btn-salvar-orcamento').textContent = 'Salvar Orçamento';
+
+                // Limpar formulário
+                formOrcamento.reset();
+                itensContainer.innerHTML = `
+                    <div class="item-orcamento" style="display: flex; gap: 10px; margin-bottom: 10px; align-items: center;">
+                        <input type="text" placeholder="Descrição do item" class="item-descricao" style="flex: 2;">
+                        <input type="number" placeholder="Quantidade" class="item-quantidade" min="1" value="1" style="flex: 1;">
+                        <input type="number" placeholder="Valor unitário" class="item-valor" step="0.01" min="0" style="flex: 1;">
+                        <button type="button" class="btn btn-sm btn-danger remover-item">×</button>
+                    </div>
+                `;
+
+                // Gerar número automático
+                gerarNumeroOrcamento();
+
+                // Calcular total inicial
+                calcularTotalOrcamento();
+
+                // Reconfigurar eventos dos itens
+                const itemDiv = itensContainer.querySelector('.item-orcamento');
+                const inputs = itemDiv.querySelectorAll('.item-quantidade, .item-valor');
+                inputs.forEach(input => {
+                    input.addEventListener('input', calcularTotalOrcamento);
+                });
+
+                itemDiv.querySelector('.remover-item').addEventListener('click', function () {
+                    if (itensContainer.children.length > 1) {
+                        itemDiv.remove();
+                        calcularTotalOrcamento();
+                    }
+                });
+
+                // Mostrar modal
+                orcamentoModal.classList.add('active');
+            });
+
+            // Adicionar item
+            document.getElementById('btn-add-item').addEventListener('click', adicionarItemOrcamento);
+
+            // Fechar modal
+            document.querySelectorAll('.modal-close').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    orcamentoModal.classList.remove('active');
+                });
+            });
+
+            // Fechar modal ao clicar fora
+            orcamentoModal.addEventListener('click', function (e) {
+                if (e.target === orcamentoModal) {
+                    orcamentoModal.classList.remove('active');
+                }
+            });
+
+            // Salvar orçamento
+            formOrcamento.addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                // Coletar itens
+                const itens = [];
+                document.querySelectorAll('.item-orcamento').forEach(item => {
+                    const descricao = item.querySelector('.item-descricao').value.trim();
+                    const quantidade = parseFloat(item.querySelector('.item-quantidade').value) || 0;
+                    const valor = parseFloat(item.querySelector('.item-valor').value) || 0;
+
+                    if (descricao && quantidade > 0 && valor > 0) {
+                        itens.push({
+                            descricao: descricao,
+                            quantidade: quantidade,
+                            valorUnitario: valor,
+                            total: quantidade * valor
+                        });
+                    }
+                });
+
+                if (itens.length === 0) {
+                    alert('Adicione pelo menos um item ao orçamento.');
+                    return;
+                }
+
+                const orcamentoData = {
+                    numero: document.getElementById('orcamento-numero').value,
+                    clienteId: document.getElementById('orcamento-cliente').value,
+                    veiculoId: document.getElementById('orcamento-veiculo').value,
+                    status: document.getElementById('orcamento-status').value,
+                    descricao: document.getElementById('orcamento-descricao').value,
+                    itens: itens,
+                    valorTotal: itens.reduce((total, item) => total + item.total, 0),
+                    observacoes: document.getElementById('orcamento-observacoes').value,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                if (orcamentoAtualId) {
+                    // Atualizar orçamento existente
+                    db.collection('orcamentos').doc(orcamentoAtualId).update(orcamentoData)
+                        .then(() => {
+                            alert('Orçamento atualizado com sucesso!');
+                            orcamentoModal.classList.remove('active');
+                            loadOrcamentos();
+                        })
+                        .catch((error) => {
+                            console.error('Erro ao atualizar orçamento:', error);
+                            alert('Erro ao atualizar orçamento. Tente novamente.');
+                        });
+                } else {
+                    // Adicionar novo orçamento
+                    orcamentoData.data = firebase.firestore.FieldValue.serverTimestamp();
+                    orcamentoData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+
+                    db.collection('orcamentos').add(orcamentoData)
+                        .then(() => {
+                            alert('Orçamento salvo com sucesso!');
+                            orcamentoModal.classList.remove('active');
+                            loadOrcamentos();
+                        })
+                        .catch((error) => {
+                            console.error('Erro ao salvar orçamento:', error);
+                            alert('Erro ao salvar orçamento. Tente novamente.');
+                        });
+                }
+            });
+
+            // Função para gerar PDF com layout melhorado e margens adequadas
+            async function gerarPDF(orcamentoId, buttonElement) {
+                try {
+                    const { jsPDF } = window.jspdf;
+
+                    // Verificar se a biblioteca está carregada
+                    if (!jsPDF || typeof jsPDF !== 'function') {
+                        throw new Error('Biblioteca jsPDF não encontrada. Verifique se ela está carregada.');
+                    }
+
+                    // Mostrar loading no botão
+                    if (buttonElement) {
+                        const originalText = buttonElement.textContent;
+                        buttonElement.textContent = 'Gerando...';
+                        buttonElement.disabled = true;
+                    }
+
+                    // Buscar dados do orçamento no Firestore
+                    const orcamentoDoc = await db.collection('orcamentos').doc(orcamentoId).get();
+
+                    if (!orcamentoDoc.exists) {
+                        throw new Error('Orçamento não encontrado.');
+                    }
+
+                    const orcamento = orcamentoDoc.data();
+
+                    // Buscar dados do cliente
+                    let clienteNome = 'Cliente não informado';
+                    let clienteTelefone = '';
+                    if (orcamento.clienteId) {
+                        const clienteDoc = await db.collection('clientes').doc(orcamento.clienteId).get();
+                        if (clienteDoc.exists) {
+                            const clienteData = clienteDoc.data();
+                            clienteNome = clienteData.nome || 'Cliente não informado';
+                            clienteTelefone = clienteData.telefone || '';
+                        }
+                    }
+
+                    // Buscar dados do veículo
+                    let veiculoInfo = 'Veículo não informado';
+                    let veiculoPlaca = '';
+                    if (orcamento.veiculoId) {
+                        const veiculoDoc = await db.collection('veiculos').doc(orcamento.veiculoId).get();
+                        if (veiculoDoc.exists) {
+                            const veiculoData = veiculoDoc.data();
+                            veiculoInfo = `${veiculoData.marca || ''} ${veiculoData.modelo || ''}`.trim();
+                            veiculoPlaca = veiculoData.placa || '';
+                        }
+                    }
+
+                    // Formatando dados
+                    const cliente = clienteNome;
+                    const clienteTel = clienteTelefone;
+                    const data = orcamento.data ? orcamento.data.toDate().toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR');
+                    const placa = veiculoPlaca || 'Não informada';
+                    const modelo = veiculoInfo || 'Não informado';
+                    const observacoes = orcamento.observacoes || '';
+                    const descricaoServico = orcamento.descricao || '';
+                    const numeroOrcamento = orcamento.numero || `ORC-${new Date().getFullYear()}-0001`;
+
+                    // Processar itens
+                    let totalGeral = 0;
+                    const rows = [];
+
+                    if (orcamento.itens && orcamento.itens.length > 0) {
+                        orcamento.itens.forEach((item, index) => {
+                            const descricao = item.descricao || `Item ${index + 1}`;
+                            const qtd = item.quantidade || 0;
+                            const valor = item.valorUnitario || 0;
+                            const total = qtd * valor;
+
+                            totalGeral += total;
+                            rows.push([
+                                descricao,
+                                qtd.toString(),
+                                `R$ ${valor.toFixed(2).replace('.', ',')}`,
+                                `R$ ${total.toFixed(2).replace('.', ',')}`
+                            ]);
+                        });
+                    } else {
+                        rows.push(['Nenhum item adicionado', '-', '-', '-']);
+                    }
+
+                    // Criar documento PDF
+                    const doc = new jsPDF();
+
+                    // Configurações da página
+                    const pageWidth = doc.internal.pageSize.width;
+                    const pageHeight = doc.internal.pageSize.height;
+                    const marginLeft = 15;
+                    const marginRight = 15;
+                    const marginTop = 20;
+                    const contentWidth = pageWidth - marginLeft - marginRight;
+                    let y = marginTop; // Posição Y inicial
+
+                    // ================================
+                    // CABEÇALHO - DADOS DA EMPRESA
+                    // ================================
+                    doc.setFontSize(16);
+                    doc.setTextColor(0, 0, 0);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('ALEXANDRE REPAROS AUTOMOTIVOS', pageWidth / 2, y, { align: 'center' });
+
+                    doc.setFontSize(10);
+                    doc.setFont('helvetica', 'normal');
+                    y += 8;
+                    doc.text('Qualidade, transparência e confiança em cada serviço', pageWidth / 2, y, { align: 'center' });
+
+                    // Dados da empresa
+                    y += 10;
+                    doc.setFontSize(9);
+                    doc.text('CNPJ: 62.275.232/0001-00', marginLeft, y);
+                    doc.text('Tel: (51) 99904-5187', pageWidth - marginRight, y, { align: 'right' });
+
+                    y += 5;
+                    doc.text('Endereço: Rua Waldemar Boa Vista, 96 - Cohab', marginLeft, y);
+                    doc.text('Sapucaia do Sul - RS', pageWidth - marginRight, y, { align: 'right' }); // CIDADE ALTERADA
+
+                    // Linha divisória
+                    y += 10;
+                    doc.setDrawColor(0, 0, 0);
+                    doc.setLineWidth(0.8);
+                    doc.line(marginLeft, y, pageWidth - marginRight, y);
+
+                    // ================================
+                    // TÍTULO DO ORÇAMENTO
+                    // ================================
+                    y += 15;
+                    doc.setFontSize(14);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(198, 40, 40); // Vermelho
+                    doc.text('ORÇAMENTO', marginLeft, y);
+
+                    doc.setFontSize(12);
+                    doc.setTextColor(0, 0, 0);
+                    doc.text(`Nº: ${numeroOrcamento}`, pageWidth - marginRight, y, { align: 'right' });
+
+                    // STATUS REMOVIDO CONFORME SOLICITADO
+
+                    // ================================
+                    // DADOS DO CLIENTE E VEÍCULO
+                    // ================================
+                    y += 15;
+
+                    // Título
+                    doc.setFontSize(11);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('DADOS DO CLIENTE:', marginLeft, y);
+
+                    // Dados em linhas separadas
+                    y += 8;
+                    doc.setFontSize(10);
+                    doc.setFont('helvetica', 'normal');
+
+                    // Cliente
+                    doc.text(`Nome: ${cliente}`, marginLeft, y);
+                    if (clienteTel) {
+                        doc.text(`Tel: ${clienteTel}`, marginLeft + 80, y);
+                    }
+                    y += 6;
+
+                    // Data
+                    doc.text(`Data: ${data}`, marginLeft, y);
+                    y += 6;
+
+                    // Veículo
+                    doc.text(`Veículo: ${modelo}`, marginLeft, y);
+                    if (placa && placa !== 'Não informada') {
+                        doc.text(`Placa: ${placa}`, marginLeft + 80, y);
+                    }
+                    y += 6;
+
+                    // Descrição do serviço (se houver)
+                    if (descricaoServico) {
+                        doc.text(`Serviço: ${descricaoServico}`, marginLeft, y);
+                        y += 6;
+                    }
+
+                    // Linha divisória
+                    y += 4;
+                    doc.setDrawColor(200, 200, 200);
+                    doc.setLineWidth(0.3);
+                    doc.line(marginLeft, y, pageWidth - marginRight, y);
+
+                    // ================================
+                    // TABELA DE ITENS COM MARGENS
+                    // ================================
+                    y += 10;
+                    doc.setFontSize(12);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('ITENS DO ORÇAMENTO', marginLeft, y);
+
+                    const startY = y + 10;
+
+                    // Usar autoTable com margens definidas
+                    if (typeof doc.autoTable === 'function') {
+                        doc.autoTable({
+                            startY: startY,
+                            head: [['DESCRIÇÃO', 'QTD', 'VALOR', 'TOTAL']],
+                            body: rows,
+                            styles: {
+                                fontSize: 10,
+                                cellPadding: 5,
+                                halign: 'center',
+                                valign: 'middle',
+                                cellWidth: 'auto'
+                            },
+                            headStyles: {
+                                fillColor: [255, 255, 255], // CABEÇALHO BRANCO (alterado de azul)
+                                textColor: [0, 0, 0], // Texto preto no cabeçalho branco
+                                fontStyle: 'bold',
+                                halign: 'center',
+                                fontSize: 11,
+                                lineColor: [0, 0, 0], // Bordas pretas
+                                lineWidth: 0.5
+                            },
+                            columnStyles: {
+                                0: {
+                                    halign: 'left',
+                                    cellWidth: contentWidth * 0.6, // 60% da largura
+                                    fontStyle: 'normal'
+                                },
+                                1: {
+                                    cellWidth: contentWidth * 0.1, // 10% da largura
+                                    halign: 'center'
+                                },
+                                2: {
+                                    cellWidth: contentWidth * 0.15, // 15% da largura
+                                    halign: 'center'
+                                },
+                                3: {
+                                    cellWidth: contentWidth * 0.15, // 15% da largura
+                                    halign: 'right'
+                                }
+                            },
+                            margin: {
+                                left: marginLeft,
+                                right: marginRight,
+                                top: 5,
+                                bottom: 10
+                            },
+                            theme: 'grid',
+                            tableWidth: contentWidth,
+                            didDrawPage: function (data) {
+                                // Adicionar número de página
+                                doc.setFontSize(8);
+                                doc.setTextColor(100, 100, 100);
+                                doc.text(
+                                    `Página ${data.pageNumber}`,
+                                    data.settings.margin.left,
+                                    pageHeight - 10
+                                );
+                            }
+                        });
+
+                        y = doc.lastAutoTable.finalY + 15;
+                    } else {
+                        // Criar tabela manualmente com margens
+                        y = criarTabelaManualComMargens(doc, rows, marginLeft, marginRight, pageWidth, startY, contentWidth);
+                    }
+
+                    // ================================
+                    // TOTAL GERAL
+                    // ================================
+                    doc.setFontSize(12);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('TOTAL DO ORÇAMENTO:', marginLeft, y);
+
+                    doc.setFontSize(14);
+                    doc.setTextColor(198, 40, 40);
+                    doc.text(
+                        `R$ ${totalGeral.toFixed(2).replace('.', ',')}`,
+                        pageWidth - marginRight,
+                        y,
+                        { align: 'right' }
+                    );
+
+                    // ================================
+                    // OBSERVAÇÕES (se houver)
+                    // ================================
+                    let obsY = y + 20;
+
+                    if (observacoes && observacoes.trim()) {
+                        doc.setFontSize(11);
+                        doc.setFont('helvetica', 'bold');
+                        doc.setTextColor(0, 0, 0);
+                        doc.text('OBSERVAÇÕES:', marginLeft, obsY);
+
+                        doc.setFontSize(10);
+                        doc.setFont('helvetica', 'normal');
+
+                        const splitText = doc.splitTextToSize(observacoes, contentWidth);
+                        doc.text(splitText, marginLeft, obsY + 8);
+
+                        obsY += splitText.length * 5 + 15;
+                    }
+
+                    // ================================
+                    // RODAPÉ COM MARGENS
+                    // ================================
+                    // TERMOS REMOVIDOS - ajustar posição do rodapé
+                    const rodapeY = Math.max(obsY + 20, pageHeight - 30);
+
+                    // Linha divisória do rodapé
+                    doc.setDrawColor(200, 200, 200);
+                    doc.setLineWidth(0.5);
+                    doc.line(marginLeft, rodapeY, pageWidth - marginRight, rodapeY);
+
+                    // Informações da empresa no rodapé
+                    doc.setFontSize(8);
+                    doc.setTextColor(100, 100, 100);
+
+                    doc.text(
+                        'Alexandre Reparos Automotivos • Tel: (51) 99904-5187',
+                        pageWidth / 2,
+                        rodapeY + 8,
+                        { align: 'center' }
+                    );
+
+                    doc.text(
+                        'Rua Waldemar Boa Vista, 96 - Cohab - Sapucaia do Sul - RS', // CIDADE ALTERADA
+                        pageWidth / 2,
+                        rodapeY + 15,
+                        { align: 'center' }
+                    );
+
+                    // ================================
+                    // SALVAR PDF
+                    // ================================
+                    const fileName = `Orcamento-${numeroOrcamento.replace(/\//g, '-')}.pdf`;
+                    doc.save(fileName);
+
+                    console.log('PDF gerado com sucesso!');
+
+                    // Restaurar botão
+                    if (buttonElement) {
+                        buttonElement.textContent = 'PDF';
+                        buttonElement.disabled = false;
+                    }
+
+                    alert(`✅ PDF gerado com sucesso!\nArquivo: ${fileName}`);
+
+                } catch (error) {
+                    console.error('Erro ao gerar PDF:', error);
+
+                    // Restaurar botão em caso de erro
+                    if (buttonElement) {
+                        buttonElement.textContent = 'PDF';
+                        buttonElement.disabled = false;
+                    }
+
+                    alert('❌ Erro ao gerar o PDF: ' + error.message);
+                }
+            }
+
+            // Função auxiliar para criar tabela manualmente com margens
+            function criarTabelaManualComMargens(doc, rows, marginLeft, marginRight, pageWidth, startY, contentWidth) {
+                let y = startY;
+
+                // Larguras das colunas (proporcionais ao conteúdo disponível)
+                const colWidths = [
+                    contentWidth * 0.6,  // Descrição: 60%
+                    contentWidth * 0.1,  // Qtd: 10%
+                    contentWidth * 0.15, // Unitário: 15%
+                    contentWidth * 0.15  // Total: 15%
+                ];
+
+                // Cabeçalho da tabela - BRANCO (alterado)
+                doc.setFillColor(255, 255, 255); // Branco
+                doc.rect(marginLeft, y, contentWidth, 12, 'F');
+
+                // Bordas do cabeçalho
+                doc.setDrawColor(0, 0, 0);
+                doc.setLineWidth(0.5);
+                doc.rect(marginLeft, y, contentWidth, 12);
+
+                doc.setTextColor(0, 0, 0); // Texto preto
+                doc.setFontSize(11);
+                doc.setFont('helvetica', 'bold');
+
+                let x = marginLeft;
+                const headers = ['DESCRIÇÃO', 'QTD', 'VALOR', 'TOTAL'];
+
+                // Desenhar cabeçalhos com alinhamento adequado
+                doc.text(headers[0], x + 5, y + 8); // Descrição alinhada à esquerda
+                doc.text(headers[1], x + colWidths[0] + (colWidths[1] / 2), y + 8, { align: 'center' }); // Qtd centralizada
+                doc.text(headers[2], x + colWidths[0] + colWidths[1] + (colWidths[2] / 2), y + 8, { align: 'center' }); // Valor centralizado
+                doc.text(headers[3], x + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] - 5, y + 8, { align: 'right' }); // Total alinhado à direita
+
+                y += 15;
+                doc.setTextColor(0, 0, 0);
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(10);
+
+                // Linhas da tabela
+                for (let row of rows) {
+                    x = marginLeft;
+
+                    // Desenhar linha de fundo alternada para melhor legibilidade
+                    if (rows.indexOf(row) % 2 === 0) {
+                        doc.setFillColor(245, 245, 245);
+                        doc.rect(x, y - 3, contentWidth, 10, 'F');
+                    }
+
+                    // Descrição (coluna 0)
+                    const descricao = row[0];
+                    const descricaoLines = doc.splitTextToSize(descricao, colWidths[0] - 10);
+                    doc.text(descricaoLines, x + 5, y);
+
+                    // Qtd (coluna 1)
+                    doc.text(row[1], x + colWidths[0] + (colWidths[1] / 2), y, { align: 'center' });
+
+                    // Valor (coluna 2)
+                    doc.text(row[2], x + colWidths[0] + colWidths[1] + (colWidths[2] / 2), y, { align: 'center' });
+
+                    // Total (coluna 3)
+                    doc.text(row[3], x + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] - 5, y, { align: 'right' });
+
+                    // Ajustar altura baseado no número de linhas da descrição
+                    const alturaLinha = Math.max(10, descricaoLines.length * 10);
+                    y += alturaLinha;
+
+                    // Linha divisória entre itens
+                    if (rows.indexOf(row) < rows.length - 1) {
+                        doc.setDrawColor(220, 220, 220);
+                        doc.setLineWidth(0.2);
+                        doc.line(marginLeft, y - 2, pageWidth - marginRight, y - 2);
+                    }
+                }
+
+                // Linha final da tabela
+                doc.setDrawColor(100, 100, 100);
+                doc.setLineWidth(0.5);
+                doc.line(marginLeft, y, pageWidth - marginRight, y);
+
+                return y + 10;
+            }
+            // Função auxiliar para criar tabela manualmente com margens
+            function criarTabelaManualComMargens(doc, rows, marginLeft, marginRight, pageWidth, startY, contentWidth) {
+                let y = startY;
+
+                // Larguras das colunas (proporcionais ao conteúdo disponível)
+                const colWidths = [
+                    contentWidth * 0.6,  // Descrição: 60%
+                    contentWidth * 0.1,  // Qtd: 10%
+                    contentWidth * 0.15, // Unitário: 15%
+                    contentWidth * 0.15  // Total: 15%
+                ];
+
+                // Cabeçalho da tabela - BRANCO (alterado)
+                doc.setFillColor(255, 255, 255); // Branco
+                doc.rect(marginLeft, y, contentWidth, 12, 'F');
+
+                // Bordas do cabeçalho
+                doc.setDrawColor(0, 0, 0);
+                doc.setLineWidth(0.5);
+                doc.rect(marginLeft, y, contentWidth, 12);
+
+                doc.setTextColor(0, 0, 0); // Texto preto
+                doc.setFontSize(11);
+                doc.setFont('helvetica', 'bold');
+
+                let x = marginLeft;
+                const headers = ['DESCRIÇÃO', 'QUANTIDADE', 'VALOR', 'TOTAL'];
+
+                // Desenhar cabeçalhos com alinhamento adequado
+                doc.text(headers[0], x + 5, y + 8); // Descrição alinhada à esquerda
+                doc.text(headers[1], x + colWidths[0] + (colWidths[1] / 2), y + 8, { align: 'center' }); // Qtd centralizada
+                doc.text(headers[2], x + colWidths[0] + colWidths[1] + (colWidths[2] / 2), y + 8, { align: 'center' }); // Unitário centralizado
+                doc.text(headers[3], x + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] - 5, y + 8, { align: 'right' }); // Total alinhado à direita
+
+                y += 15;
+                doc.setTextColor(0, 0, 0);
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(10);
+
+                // Linhas da tabela
+                for (let row of rows) {
+                    x = marginLeft;
+
+                    // Desenhar linha de fundo alternada para melhor legibilidade
+                    if (rows.indexOf(row) % 2 === 0) {
+                        doc.setFillColor(245, 245, 245);
+                        doc.rect(x, y - 3, contentWidth, 10, 'F');
+                    }
+
+                    // Descrição (coluna 0)
+                    const descricao = row[0];
+                    const descricaoLines = doc.splitTextToSize(descricao, colWidths[0] - 10);
+                    doc.text(descricaoLines, x + 5, y);
+
+                    // Qtd (coluna 1)
+                    doc.text(row[1], x + colWidths[0] + (colWidths[1] / 2), y, { align: 'center' });
+
+                    // Unitário (coluna 2)
+                    doc.text(row[2], x + colWidths[0] + colWidths[1] + (colWidths[2] / 2), y, { align: 'center' });
+
+                    // Total (coluna 3)
+                    doc.text(row[3], x + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] - 5, y, { align: 'right' });
+
+                    // Ajustar altura baseado no número de linhas da descrição
+                    const alturaLinha = Math.max(10, descricaoLines.length * 10);
+                    y += alturaLinha;
+
+                    // Linha divisória entre itens
+                    if (rows.indexOf(row) < rows.length - 1) {
+                        doc.setDrawColor(220, 220, 220);
+                        doc.setLineWidth(0.2);
+                        doc.line(marginLeft, y - 2, pageWidth - marginRight, y - 2);
+                    }
+                }
+
+                // Linha final da tabela
+                doc.setDrawColor(100, 100, 100);
+                doc.setLineWidth(0.5);
+                doc.line(marginLeft, y, pageWidth - marginRight, y);
+
+                return y + 10;
+            }
+
+
+            // Função auxiliar para criar tabela manualmente
+            function criarTabelaManual(doc, rows, margin, pageWidth, startY) {
+                let y = startY;
+                const colWidths = [100, 25, 35, 35];
+
+                // Cabeçalho da tabela
+                doc.setFillColor(66, 66, 66);
+                doc.rect(margin, y, pageWidth - 2 * margin, 10, 'F');
+
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'bold');
+
+                let x = margin;
+                const headers = ['DESCRIÇÃO', 'QUANTIDADE', 'VALOR', 'TOTAL'];
+
+                for (let i = 0; i < headers.length; i++) {
+                    if (i === 3) {
+                        doc.text(headers[i], x + colWidths[i] - 5, y + 7, { align: 'right' });
+                    } else if (i === 0) {
+                        doc.text(headers[i], x + 5, y + 7);
+                    } else {
+                        doc.text(headers[i], x + colWidths[i] / 2, y + 7, { align: 'center' });
+                    }
+                    x += colWidths[i];
+                }
+
+                y += 15;
+                doc.setTextColor(0, 0, 0);
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(9);
+
+                // Linhas da tabela
+                for (let row of rows) {
+                    x = margin;
+                    for (let i = 0; i < row.length; i++) {
+                        if (i === 3) {
+                            doc.text(row[i], x + colWidths[i] - 5, y, { align: 'right' });
+                        } else if (i === 0) {
+                            doc.text(row[i], x + 5, y);
+                        } else {
+                            doc.text(row[i], x + colWidths[i] / 2, y, { align: 'center' });
+                        }
+                        x += colWidths[i];
+                    }
+                    y += 10;
+                }
+
+                return y;
+            }
+
+            // Expor funções para os botões na tabela
+            window.visualizarOrcamento = function (orcamentoId) {
+                Promise.all([
+                    db.collection('orcamentos').doc(orcamentoId).get(),
+                    db.collection('clientes').get(),
+                    db.collection('veiculos').get()
+                ])
+                    .then(([orcamentoDoc, clientesSnapshot, veiculosSnapshot]) => {
+                        if (!orcamentoDoc.exists) {
+                            alert('Orçamento não encontrado.');
+                            return;
+                        }
+
+                        const orcamento = orcamentoDoc.data();
+
+                        // Criar mapas
+                        const clientesMapLocal = {};
+                        clientesSnapshot.forEach(doc => {
+                            clientesMapLocal[doc.id] = doc.data();
+                        });
+
+                        const veiculosMapLocal = {};
+                        veiculosSnapshot.forEach(doc => {
+                            veiculosMapLocal[doc.id] = doc.data();
+                        });
+
+                        const cliente = clientesMapLocal[orcamento.clienteId] || {};
+                        const veiculo = veiculosMapLocal[orcamento.veiculoId] || {};
+
+                        // Criar modal de visualização
+                        const modal = document.createElement('div');
+                        modal.className = 'modal active';
+                        modal.innerHTML = `
+                        <div class="modal-content" style="max-width: 800px;">
+                            <button class="modal-close">&times;</button>
+                            <h2 class="modal-title">Orçamento ${orcamento.numero}</h2>
+                            
+                            <div class="detail-card">
+                                <h3>Informações do Orçamento</h3>
+                                <div class="detail-row">
+                                    <div class="detail-label">Número:</div>
+                                    <div class="detail-value">${orcamento.numero}</div>
+                                </div>
+                                <div class="detail-row">
+                                    <div class="detail-label">Data:</div>
+                                    <div class="detail-value">${orcamento.data ? orcamento.data.toDate().toLocaleDateString('pt-BR') : ''}</div>
+                                </div>
+                                <div class="detail-row">
+                                    <div class="detail-label">Status:</div>
+                                    <div class="detail-value"><span class="status-badge status-${orcamento.status || 'pendente'}">${getStatusText(orcamento.status)}</span></div>
+                                </div>
+                            </div>
+                            
+                            <div class="detail-card">
+                                <h3>Cliente</h3>
+                                <div class="detail-row">
+                                    <div class="detail-label">Nome:</div>
+                                    <div class="detail-value">${cliente.nome || 'Não informado'}</div>
+                                </div>
+                                <div class="detail-row">
+                                    <div class="detail-label">Telefone:</div>
+                                    <div class="detail-value">${cliente.telefone || 'Não informado'}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="detail-card">
+                                <h3>Veículo</h3>
+                                <div class="detail-row">
+                                    <div class="detail-label">Placa:</div>
+                                    <div class="detail-value">${veiculo.placa || 'Não informado'}</div>
+                                </div>
+                                <div class="detail-row">
+                                    <div class="detail-label">Marca/Modelo:</div>
+                                    <div class="detail-value">${veiculo.marca || ''} ${veiculo.modelo || ''}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="detail-card">
+                                <h3>Itens do Orçamento</h3>
+                                <div class="table-container">
+                                    <table class="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Descrição</th>
+                                                <th>Quantidade</th>
+                                                <th>Valor Unitário</th>
+                                                <th>Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${orcamento.itens ? orcamento.itens.map(item => `
+                                                <tr>
+                                                    <td>${item.descricao}</td>
+                                                    <td>${item.quantidade}</td>
+                                                    <td>R$ ${item.valorUnitario.toFixed(2)}</td>
+                                                    <td>R$ ${item.total.toFixed(2)}</td>
+                                                </tr>
+                                            `).join('') : ''}
+                                            <tr>
+                                                <td colspan="3" style="text-align: right; font-weight: bold;">Total:</td>
+                                                <td style="font-weight: bold;">R$ ${orcamento.valorTotal ? orcamento.valorTotal.toFixed(2) : '0,00'}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="button" class="btn btn-warning" onclick="editarOrcamento('${orcamentoId}')">Editar</button>
+                                <button type="button" class="btn btn-success" onclick="gerarPDF('${orcamentoId}')">Gerar PDF</button>
+                                <button type="button" class="btn btn-secondary modal-close">Fechar</button>
+                            </div>
+                        </div>
+                    `;
+
+                        document.body.appendChild(modal);
+
+                        // Configurar fechamento do modal
+                        const closeBtn = modal.querySelector('.modal-close');
+                        closeBtn.addEventListener('click', () => modal.remove());
+                        modal.addEventListener('click', (e) => {
+                            if (e.target === modal) {
+                                modal.remove();
+                            }
+                        });
+                    })
+                    .catch((error) => {
+                        console.error('Erro ao carregar orçamento:', error);
+                        alert('Erro ao carregar dados do orçamento.');
+                    });
+            };
+
+            window.editarOrcamento = function (orcamentoId) {
+                carregarOrcamentoParaEdicao(orcamentoId);
+            };
+
+            // Expor a função gerarPDF globalmente
+            window.gerarPDF = gerarPDF;
+
+            window.excluirOrcamento = function (orcamentoId) {
+                if (confirm('Tem certeza que deseja excluir este orçamento?')) {
+                    db.collection('orcamentos').doc(orcamentoId).delete()
+                        .then(() => {
+                            alert('Orçamento excluído com sucesso!');
+                            loadOrcamentos();
+                        })
+                        .catch((error) => {
+                            console.error('Erro ao excluir orçamento:', error);
+                            alert('Erro ao excluir orçamento. Tente novamente.');
+                        });
+                }
+            };
+        });
+    </script>
+</body>
+
+</html>
