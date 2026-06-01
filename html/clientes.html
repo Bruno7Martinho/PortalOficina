@@ -16,7 +16,12 @@
             <div class="logo">
                 <h1>Alexandre Reparos Automotivos</h1>
             </div>
-            <nav class="main-nav">
+            <button class="hamburger" id="hamburger-btn" aria-label="Abrir menu" aria-expanded="false" aria-controls="main-nav">
+                <span class="lines" aria-hidden="true">
+                    <span></span><span></span><span></span>
+                </span>
+            </button>
+            <nav class="main-nav" id="main-nav">
                 <ul>
                     <li><a href="dashboard.html">Dashboard</a></li>
                     <li><a href="clientes.html" class="active">Clientes</a></li>
@@ -26,6 +31,7 @@
                 </ul>
             </nav>
             <div class="user-info" id="user-info">
+
                 <!-- Preenchido por JavaScript -->
             </div>
         </header>
@@ -106,8 +112,30 @@
 
     <script src="../js/firebase-config.js"></script>
     <script>
+        // Menu lateral / hamburguer
+        document.addEventListener('DOMContentLoaded', function() {
+            const btn = document.getElementById('hamburger-btn');
+            const nav = document.getElementById('main-nav');
+            if (!btn || !nav) return;
+
+            btn.addEventListener('click', function() {
+                const isOpen = nav.classList.toggle('open');
+                btn.setAttribute('aria-expanded', String(isOpen));
+            });
+
+            nav.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', () => {
+                    if (window.matchMedia('(max-width: 1200px)').matches) {
+                        nav.classList.remove('open');
+                        btn.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            });
+        });
+
         // Gerenciamento de Clientes
         document.addEventListener('DOMContentLoaded', function() {
+
             // Verificar autenticação
             auth.onAuthStateChanged(function(user) {
                 if (user) {
@@ -147,11 +175,11 @@
             function loadClientes() {
                 clientesLoader.style.display = 'block';
                 clientesBody.innerHTML = '';
-                
+
                 db.collection('clientes').orderBy('nome').get()
                     .then((snapshot) => {
                         clientesLoader.style.display = 'none';
-                        
+
                         if (snapshot.empty) {
                             clientesBody.innerHTML = `
                                 <tr>
@@ -160,7 +188,7 @@
                             `;
                             return;
                         }
-                        
+
                         snapshot.forEach((doc) => {
                             const cliente = doc.data();
                             const row = document.createElement('tr');
@@ -188,6 +216,7 @@
                         `;
                     });
             }
+
             
             // Configurar eventos
             document.getElementById('btn-novo-cliente').addEventListener('click', function() {

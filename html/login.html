@@ -252,7 +252,7 @@
                         placeholder.style.alignItems = 'center';
                         placeholder.style.justifyContent = 'center';
                         placeholder.style.fontSize = '2rem';
-                        placeholder.innerHTML = '🚗';
+                        placeholder.textContent = 'AR';
                         logoContainer.insertBefore(placeholder, logoContainer.firstChild);
                         return;
                     }
@@ -317,7 +317,7 @@
                     await auth.signInWithEmailAndPassword(email, password);
                     
                     // Login bem-sucedido - redirecionar
-                    showMessage('✅ Login realizado! Redirecionando...', 'success');
+                    showMessage('Login realizado. Redirecionando...', 'success');
                     setTimeout(() => {
                         window.location.href = 'dashboard.html';
                     }, 1000);

@@ -16,7 +16,12 @@
             <div class="logo">
                 <h1>Alexandre Reparos Automotivos</h1>
             </div>
-            <nav class="main-nav">
+            <button class="hamburger" id="hamburger-btn" aria-label="Abrir menu" aria-expanded="false" aria-controls="main-nav">
+                <span class="lines" aria-hidden="true">
+                    <span></span><span></span><span></span>
+                </span>
+            </button>
+            <nav class="main-nav" id="main-nav">
                 <ul>
                     <li><a href="index.html" class="active">Início</a></li>
                     <li><a href="html/dashboard.html">Dashboard</a></li>
@@ -26,6 +31,7 @@
                 </ul>
             </nav>
             <div class="user-info" id="user-info">
+
                 <!-- Preenchido por JavaScript quando logado -->
                 <span class="user-email">Visitante</span>
             </div>
@@ -38,25 +44,25 @@
                 
                 <div class="dashboard-grid" style="margin-top: 40px;">
                     <div class="dashboard-card">
-                        <h3>👥 Clientes</h3>
+                        <h3>Clientes</h3>
                         <p>Gerencie o cadastro de clientes, histórico de serviços e informações de contato.</p>
                         <a href="pages/clientes.html" class="btn btn-primary">Acessar Clientes</a>
                     </div>
                     
                     <div class="dashboard-card">
-                        <h3>🚗 Veículos</h3>
+                        <h3>Veículos</h3>
                         <p>Controle a frota de veículos, histórico de manutenção e especificações técnicas.</p>
                         <a href="pages/veiculos.html" class="btn btn-primary">Acessar Veículos</a>
                     </div>
                     
                     <div class="dashboard-card">
-                        <h3>💰 Orçamentos</h3>
+                        <h3>Orçamentos</h3>
                         <p>Crie, gerencie e acompanhe orçamentos de serviços para seus clientes.</p>
                         <a href="pages/orcamentos.html" class="btn btn-primary">Acessar Orçamentos</a>
                     </div>
                     
                     <div class="dashboard-card">
-                        <h3>📊 Financeiro</h3>
+                        <h3>Financeiro</h3>
                         <p>Controle receitas, despesas e tenha uma visão completa da saúde financeira.</p>
                         <a href="pages/financeiro.html" class="btn btn-primary">Acessar Financeiro</a>
                     </div>
@@ -66,7 +72,7 @@
             </section>
             
             <section style="margin-top: 50px; padding: 30px; background-color: #f5f5f5; border-radius: 10px;">
-                <h3 style="color: #c62828; margin-bottom: 20px;">📈 Estatísticas Rápidas</h3>
+                <h3 style="color: #c62828; margin-bottom: 20px;">Estatísticas Rápidas</h3>
                 <div class="stats-container">
                     <div class="stat-card">
                         <div class="stat-value" id="clientes-count">0</div>
@@ -98,8 +104,31 @@
 
     <script src="js/firebase-config.js"></script>
     <script>
+        // Menu lateral / hamburguer
+        document.addEventListener('DOMContentLoaded', function() {
+            const btn = document.getElementById('hamburger-btn');
+            const nav = document.getElementById('main-nav');
+            if (!btn || !nav) return;
+
+            btn.addEventListener('click', function() {
+                const isOpen = nav.classList.toggle('open');
+                btn.setAttribute('aria-expanded', String(isOpen));
+            });
+
+            // Fecha ao clicar em um link no mobile
+            nav.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', () => {
+                    if (window.matchMedia('(max-width: 1200px)').matches) {
+                        nav.classList.remove('open');
+                        btn.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            });
+        });
+
         // Verificar se o usuário já está logado
         document.addEventListener('DOMContentLoaded', function() {
+
             // Inicializar Firebase
             if (typeof auth !== 'undefined') {
                 auth.onAuthStateChanged(function(user) {

@@ -81,7 +81,7 @@
 
         <main class="main-content">
             <div class="first-access-container">
-                <h2>🔧 Configuração Inicial</h2>
+                <h2>Configuração Inicial</h2>
                 <p>Crie a primeira conta de administrador para gerenciar a oficina.</p>
                 
                 <div id="message-box" class="alert-box alert-info">
@@ -112,17 +112,17 @@
                     
                     <button type="submit" class="btn btn-primary btn-block">
                         <span id="btn-text">Criar Conta Administrador</span>
-                        <span id="btn-loading" style="display: none;">⌛ Criando...</span>
+                        <span id="btn-loading" style="display: none;">Criando...</span>
                     </button>
                 </form>
                 
                 <div class="back-link">
-                    <a href="login.html" class="btn btn-secondary">← Voltar para Login</a>
+                    <a href="login.html" class="btn btn-secondary">Voltar para Login</a>
                 </div>
                 
                 <div id="success-message" style="display: none; margin-top: 20px;">
                     <div class="alert-box alert-success">
-                        ✅ Conta criada com sucesso! Redirecionando para login...
+                        Conta criada com sucesso. Redirecionando para login...
                     </div>
                 </div>
             </div>
@@ -210,7 +210,7 @@
                     await criarEstruturaInicial();
                     
                     // 4. Mostrar mensagem de sucesso
-                    showMessage('✅ Conta criada com sucesso!', 'success');
+                    showMessage('Conta criada com sucesso!', 'success');
                     
                     // 5. Esconder formulário e mostrar mensagem final
                     form.style.display = 'none';

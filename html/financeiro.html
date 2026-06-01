@@ -19,7 +19,12 @@
             <div class="logo">
                 <h1>Alexandre Reparos Automotivos</h1>
             </div>
-            <nav class="main-nav">
+            <button class="hamburger" id="hamburger-btn" aria-label="Abrir menu" aria-expanded="false" aria-controls="main-nav">
+                <span class="lines" aria-hidden="true">
+                    <span></span><span></span><span></span>
+                </span>
+            </button>
+            <nav class="main-nav" id="main-nav">
                 <ul>
                     <li><a href="dashboard.html">Dashboard</a></li>
                     <li><a href="clientes.html">Clientes</a></li>
@@ -29,6 +34,7 @@
                 </ul>
             </nav>
             <div class="user-info" id="user-info">
+
                 <!-- Preenchido por JavaScript -->
             </div>
         </header>
@@ -323,8 +329,30 @@
 
     <script src="../js/firebase-config.js"></script>
     <script>
+        // Menu lateral / hamburguer
+        document.addEventListener('DOMContentLoaded', function() {
+            const btn = document.getElementById('hamburger-btn');
+            const nav = document.getElementById('main-nav');
+            if (!btn || !nav) return;
+
+            btn.addEventListener('click', function() {
+                const isOpen = nav.classList.toggle('open');
+                btn.setAttribute('aria-expanded', String(isOpen));
+            });
+
+            nav.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', () => {
+                    if (window.matchMedia('(max-width: 1200px)').matches) {
+                        nav.classList.remove('open');
+                        btn.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            });
+        });
+
         // Gerenciamento Financeiro - COM ANÁLISE MENSAL
         document.addEventListener('DOMContentLoaded', function() {
+
             // Variáveis globais
             let filtroMesAtual = null;
             let filtroAnoAtual = null;
@@ -890,7 +918,7 @@
                         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
                     
-                    alert('✅ Pagamento registrado com sucesso!');
+                    alert('Pagamento registrado com sucesso!');
                     document.getElementById('pagamento-modal').classList.remove('active');
                     this.reset();
                     configurarDataAtual();
@@ -900,7 +928,7 @@
                     
                 } catch (error) {
                     console.error('Erro ao registrar pagamento:', error);
-                    alert('❌ Erro ao registrar pagamento. Tente novamente.');
+                    alert('Erro ao registrar pagamento. Tente novamente.');
                 }
             });
             
@@ -935,7 +963,7 @@
                         userId: auth.currentUser.uid
                     });
                     
-                    alert('✅ Despesa salva com sucesso!');
+                    alert('Despesa salva com sucesso!');
                     document.getElementById('despesa-modal').classList.remove('active');
                     this.reset();
                     configurarDataAtual();
@@ -945,7 +973,7 @@
                     
                 } catch (error) {
                     console.error('Erro ao salvar despesa:', error);
-                    alert('❌ Erro ao salvar despesa. Tente novamente.');
+                    alert('Erro ao salvar despesa. Tente novamente.');
                 }
             });
             
@@ -1095,7 +1123,7 @@
             if (confirm('Tem certeza que deseja excluir esta despesa? Esta ação não pode ser desfeita.')) {
                 try {
                     await db.collection('despesas').doc(id).delete();
-                    alert('✅ Despesa excluída com sucesso!');
+                    alert('Despesa excluída com sucesso!');
                     
                     // Recarregar apenas os dados necessários
                     const event = new Event('DOMContentLoaded', { bubbles: true });
@@ -1103,7 +1131,7 @@
                     
                 } catch (error) {
                     console.error('Erro ao excluir despesa:', error);
-                    alert('❌ Erro ao excluir despesa. Tente novamente.');
+                    alert('Erro ao excluir despesa. Tente novamente.');
                 }
             }
         };

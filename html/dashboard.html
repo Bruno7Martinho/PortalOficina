@@ -18,6 +18,11 @@
             <div class="logo">
                 <h1>Alexandre Reparos Automotivos</h1>
             </div>
+            <button class="hamburger" id="hamburger-btn" aria-label="Abrir menu" aria-expanded="false" aria-controls="main-nav">
+                <span class="lines" aria-hidden="true">
+                    <span></span><span></span><span></span>
+                </span>
+            </button>
             <nav class="main-nav" id="main-nav">
                 <ul>
                     <li><a href="dashboard.html" class="active">Dashboard</a></li>
@@ -28,6 +33,7 @@
                 </ul>
             </nav>
             <div class="user-info" id="user-info">
+
                 <!-- Preenchido por JavaScript -->
             </div>
         </header>
@@ -61,8 +67,30 @@
 
     <script src="../js/firebase-config.js"></script>
     <script>
+        // Menu lateral / hamburguer
+        document.addEventListener('DOMContentLoaded', function () {
+            const btn = document.getElementById('hamburger-btn');
+            const nav = document.getElementById('main-nav');
+            if (!btn || !nav) return;
+
+            btn.addEventListener('click', function () {
+                const isOpen = nav.classList.toggle('open');
+                btn.setAttribute('aria-expanded', String(isOpen));
+            });
+
+            nav.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', () => {
+                    if (window.matchMedia('(max-width: 1200px)').matches) {
+                        nav.classList.remove('open');
+                        btn.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            });
+        });
+
         // Dashboard com dados reais do Firebase
         document.addEventListener('DOMContentLoaded', function () {
+
             // Verificar autenticação
             auth.onAuthStateChanged(function (user) {
                 if (user) {
@@ -234,7 +262,7 @@
 
                 dashboardGrid.innerHTML = `
                     <div class="dashboard-card">
-                        <h3><span class="card-icon">👥</span> Gerenciar Clientes</h3>
+                        <h3>Gerenciar Clientes</h3>
                         <p>Cadastre novos clientes e visualize todos os clientes cadastrados no sistema.</p>
                         <div style="margin-top: 20px; display: flex; gap: 10px;">
                             <a href="clientes.html" class="btn btn-primary">Ver Clientes</a>
@@ -243,7 +271,7 @@
                     </div>
                     
                     <div class="dashboard-card">
-                        <h3><span class="card-icon">🚗</span> Gerenciar Veículos</h3>
+                        <h3>Gerenciar Veículos</h3>
                         <p>Controle a frota de veículos, histórico de serviços e próximas revisões.</p>
                         <div style="margin-top: 20px; display: flex; gap: 10px;">
                             <a href="veiculos.html" class="btn btn-primary">Ver Veículos</a>
@@ -252,7 +280,7 @@
                     </div>
                     
                     <div class="dashboard-card">
-                        <h3><span class="card-icon">💰</span> Criar Orçamento</h3>
+                        <h3>Criar Orçamento</h3>
                         <p>Gere novos orçamentos para seus clientes de forma rápida e profissional.</p>
                         <div style="margin-top: 20px; display: flex; gap: 10px;">
                             <a href="orcamentos.html" class="btn btn-primary">Ver Orçamentos</a>
@@ -261,7 +289,7 @@
                     </div>
                     
                     <div class="dashboard-card">
-                        <h3><span class="card-icon">📊</span> Controle Financeiro</h3>
+                        <h3>Controle Financeiro</h3>
                         <p>Acompanhe receitas, despesas e tenha uma visão completa das finanças.</p>
                         <div style="margin-top: 20px; display: flex; gap: 10px;">
                             <a href="financeiro.html" class="btn btn-primary">Ver Financeiro</a>

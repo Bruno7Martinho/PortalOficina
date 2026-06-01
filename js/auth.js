@@ -177,25 +177,25 @@ function loadDashboardContent(user) {
         
         <div class="dashboard-grid">
             <div class="dashboard-card">
-                <h3><span class="card-icon">👥</span> Clientes</h3>
+                <h3>Clientes</h3>
                 <p>Gerencie os clientes da oficina</p>
                 <button id="btn-clientes" class="btn btn-primary">Gerenciar Clientes</button>
             </div>
             
             <div class="dashboard-card">
-                <h3><span class="card-icon">🚗</span> Veículos</h3>
+                <h3>Veículos</h3>
                 <p>Controle os veículos em reparo</p>
                 <button id="btn-veiculos" class="btn btn-primary">Gerenciar Veículos</button>
             </div>
             
             <div class="dashboard-card">
-                <h3><span class="card-icon">💰</span> Orçamentos</h3>
+                <h3>Orçamentos</h3>
                 <p>Crie e gerencie orçamentos</p>
                 <button id="btn-orcamentos" class="btn btn-primary">Gerenciar Orçamentos</button>
             </div>
             
             <div class="dashboard-card">
-                <h3><span class="card-icon">📊</span> Financeiro</h3>
+                <h3>Financeiro</h3>
                 <p>Controle financeiro da oficina</p>
                 <button id="btn-financeiro" class="btn btn-primary">Gerenciar Financeiro</button>
             </div>
