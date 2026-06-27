@@ -317,24 +317,42 @@
             }
 
             function criarItemOrcamentoHTML(item = {}) {
+                item = item || {};
                 const descricao = item.descricao || '';
                 const itemPredefinido = itensPredefinidos.some(opcao => opcao.descricao === descricao);
                 const textoLivre = itemPredefinido ? '' : descricao;
-                const valor = item.valorUnitario || '';
-                const quantidade = item.quantidade || 1;
+                const valor = item.valorUnitario ?? '';
+                const quantidade = item.quantidade ?? 1;
 
                 return `
-                    <select class="item-descricao-select" data-selected="${itemPredefinido ? descricao : ''}" aria-label="Peça ou serviço">
+                    <select class="item-descricao item-descricao-select" data-selected="${itemPredefinido ? descricao : ''}" aria-label="Peça ou serviço">
                         ${montarOpcoesItens(itemPredefinido ? descricao : '')}
                     </select>
-                    <input type="text" placeholder="Digite outro serviço ou peça" class="item-descricao-input" value="${textoLivre}">
+                    <input type="text" placeholder="Digite outro serviço ou peça" class="item-descricao item-descricao-input" value="${textoLivre}">
                     <input type="number" placeholder="Quantidade" class="item-quantidade" min="1" value="${quantidade}">
                     <input type="number" placeholder="Valor unitário" class="item-valor" step="0.01" min="0" value="${valor}">
                     <button type="button" class="btn btn-sm btn-danger remover-item">Remover</button>
                 `;
             }
 
-            document.querySelectorAll('.item-orcamento').forEach(configurarItemOrcamento);
+            function adicionarItemOrcamento(item = {}) {
+                const novoItem = document.createElement('div');
+                novoItem.className = 'item-orcamento';
+                novoItem.innerHTML = criarItemOrcamentoHTML(item);
+                itensContainer.appendChild(novoItem);
+                configurarItemOrcamento(novoItem);
+                calcularTotalOrcamento();
+                return novoItem;
+            }
+
+            function resetarItensOrcamento(itens = [{}]) {
+                itensContainer.innerHTML = '';
+                const itensParaRenderizar = Array.isArray(itens) && itens.length > 0 ? itens : [{}];
+                itensParaRenderizar.forEach(item => adicionarItemOrcamento(item));
+                calcularTotalOrcamento();
+            }
+
+            resetarItensOrcamento();
 
             // Carregar dados para o formulário
             function loadDadosParaFormulario() {
@@ -498,59 +516,14 @@
                     });
             }
 
-            // Adicionar item ao orçamento
-            function adicionarItemOrcamento() {
-                const novoItem = document.createElement('div');
-                novoItem.className = 'item-orcamento';
-                novoItem.style.display = 'flex';
-                novoItem.style.gap = '10px';
-                novoItem.style.marginBottom = '10px';
-                novoItem.style.alignItems = 'center';
-                novoItem.innerHTML = `
-                    <select class="item-descricao item-descricao-select" style="flex: 2;" aria-label="Peça/serviço">
-                        <option value="">Selecione uma peça/serviço...</option>
-                    </select>
-
-                    <input type="text" placeholder="Ou escreva aqui a descrição do item" class="item-descricao item-descricao-input" style="flex: 2;">
-
-                    <input type="number" placeholder="Quantidade" class="item-quantidade" min="1" value="1" style="flex: 1;">
-                    <input type="number" placeholder="Valor unitário" class="item-valor" step="0.01" min="0" style="flex: 1;">
-                    <button type="button" class="btn btn-sm btn-danger remover-item">×</button>
-                `;
-
-                itensContainer.appendChild(novoItem);
-
-                // Adicionar evento para calcular total quando o valor mudar
-                const inputs = novoItem.querySelectorAll('.item-quantidade, .item-valor');
-                inputs.forEach(input => {
-                    input.addEventListener('input', calcularTotalOrcamento);
-                });
-
-                // Adicionar evento para remover item
-                novoItem.querySelector('.remover-item').addEventListener('click', function () {
-                    if (itensContainer.children.length > 1) {
-                        novoItem.remove();
-                        calcularTotalOrcamento();
-                    }
-                });
-            }
-
             // Calcular total do orçamento
-            function adicionarItemOrcamento() {
-                const novoItem = document.createElement('div');
-                novoItem.className = 'item-orcamento';
-                novoItem.innerHTML = criarItemOrcamentoHTML();
-                itensContainer.appendChild(novoItem);
-                configurarItemOrcamento(novoItem);
-            }
-
             function calcularTotalOrcamento() {
-                const itens = document.querySelectorAll('.item-orcamento');
+                const itens = itensContainer.querySelectorAll('.item-orcamento');
                 let total = 0;
 
                 itens.forEach(item => {
-                    const quantidade = parseFloat(item.querySelector('.item-quantidade').value) || 0;
-                    const valor = parseFloat(item.querySelector('.item-valor').value) || 0;
+                    const quantidade = parseFloat(item.querySelector('.item-quantidade')?.value) || 0;
+                    const valor = parseFloat(item.querySelector('.item-valor')?.value) || 0;
                     total += quantidade * valor;
                 });
 
@@ -583,49 +556,7 @@
                         document.getElementById('orcamento-descricao').value = orcamento.descricao || '';
                         document.getElementById('orcamento-observacoes').value = orcamento.observacoes || '';
 
-                        // Limpar e carregar itens
-                        itensContainer.innerHTML = '';
-
-                        if (orcamento.itens && orcamento.itens.length > 0) {
-                            orcamento.itens.forEach((item, index) => {
-                                const itemDiv = document.createElement('div');
-                                itemDiv.className = 'item-orcamento';
-                                itemDiv.style.display = 'flex';
-                                itemDiv.style.gap = '10px';
-                                itemDiv.style.marginBottom = '10px';
-                                itemDiv.style.alignItems = 'center';
-
-                                itemDiv.innerHTML = `
-                                    <input type="text" placeholder="Descrição do item" class="item-descricao" style="flex: 2;" value="${item.descricao || ''}">
-                                    <input type="number" placeholder="Quantidade" class="item-quantidade" min="1" value="${item.quantidade || 1}" style="flex: 1;">
-                                    <input type="number" placeholder="Valor unitário" class="item-valor" step="0.01" min="0" value="${item.valorUnitario || 0}" style="flex: 1;">
-                                    <button type="button" class="btn btn-sm btn-danger remover-item">×</button>
-                                `;
-
-                                itensContainer.appendChild(itemDiv);
-                                itemDiv.innerHTML = criarItemOrcamentoHTML(item);
-                                configurarItemOrcamento(itemDiv);
-
-                                // Adicionar eventos
-                                const inputs = itemDiv.querySelectorAll('.item-quantidade, .item-valor');
-                                inputs.forEach(input => {
-                                    input.addEventListener('input', calcularTotalOrcamento);
-                                });
-
-                                itemDiv.querySelector('.remover-item').addEventListener('click', function () {
-                                    if (itensContainer.children.length > 1) {
-                                        itemDiv.remove();
-                                        calcularTotalOrcamento();
-                                    }
-                                });
-                            });
-                        } else {
-                            // Adicionar um item vazio se não houver itens
-                            adicionarItemOrcamento();
-                        }
-
-                        // Calcular total
-                        calcularTotalOrcamento();
+                        resetarItensOrcamento(orcamento.itens || [{}]);
 
                         // Mostrar modal
                         orcamentoModal.classList.add('active');
@@ -642,41 +573,11 @@
                 modalTitle.textContent = 'Novo Orçamento';
                 document.getElementById('btn-salvar-orcamento').textContent = 'Salvar Orçamento';
 
-                // Limpar formulário
                 formOrcamento.reset();
-                itensContainer.innerHTML = `
-                    <div class="item-orcamento" style="display: flex; gap: 10px; margin-bottom: 10px; align-items: center;">
-                        <input type="text" placeholder="Descrição do item" class="item-descricao" style="flex: 2;">
-                        <input type="number" placeholder="Quantidade" class="item-quantidade" min="1" value="1" style="flex: 1;">
-                        <input type="number" placeholder="Valor unitário" class="item-valor" step="0.01" min="0" style="flex: 1;">
-                        <button type="button" class="btn btn-sm btn-danger remover-item">×</button>
-                    </div>
-                `;
+                resetarItensOrcamento();
 
                 // Gerar número automático
-                itensContainer.innerHTML = '<div class="item-orcamento"></div>';
-                const novoItemInicial = itensContainer.querySelector('.item-orcamento');
-                novoItemInicial.innerHTML = criarItemOrcamentoHTML();
-                configurarItemOrcamento(novoItemInicial);
-
                 gerarNumeroOrcamento();
-
-                // Calcular total inicial
-                calcularTotalOrcamento();
-
-                // Reconfigurar eventos dos itens
-                const itemDiv = itensContainer.querySelector('.item-orcamento');
-                const inputs = itemDiv.querySelectorAll('.item-quantidade, .item-valor');
-                inputs.forEach(input => {
-                    input.addEventListener('input', calcularTotalOrcamento);
-                });
-
-                itemDiv.querySelector('.remover-item').addEventListener('click', function () {
-                    if (itensContainer.children.length > 1) {
-                        itemDiv.remove();
-                        calcularTotalOrcamento();
-                    }
-                });
 
                 // Mostrar modal
                 orcamentoModal.classList.add('active');
@@ -705,10 +606,10 @@
 
                 // Coletar itens
                 const itens = [];
-                document.querySelectorAll('.item-orcamento').forEach(item => {
+                itensContainer.querySelectorAll('.item-orcamento').forEach(item => {
                     const descricao = descricaoDoItem(item);
-                    const quantidade = parseFloat(item.querySelector('.item-quantidade').value) || 0;
-                    const valor = parseFloat(item.querySelector('.item-valor').value) || 0;
+                    const quantidade = parseFloat(item.querySelector('.item-quantidade')?.value) || 0;
+                    const valor = parseFloat(item.querySelector('.item-valor')?.value) || 0;
 
                     if (descricao && quantidade > 0 && valor > 0) {
                         itens.push({

@@ -229,11 +229,12 @@ function showNovoOrcamentoForm() {
             btn.addEventListener('click', () => modal.remove());
         });
         
-        // Configurar adição de itens
-        document.getElementById('btn-add-item').addEventListener('click', adicionarItemOrcamento);
-        
         // Configurar cálculo do total
-        const itensContainer = document.getElementById('orcamento-itens');
+        const itensContainer = modal.querySelector('#orcamento-itens');
+
+        // Configurar adição de itens
+        modal.querySelector('#btn-add-item').addEventListener('click', () => adicionarItemOrcamento(itensContainer));
+        
         itensContainer.addEventListener('input', calcularTotalOrcamento);
         
         // Configurar remoção de itens
@@ -290,8 +291,9 @@ function gerarNumeroOrcamento() {
 }
 
 // Adicionar item ao orçamento
-function adicionarItemOrcamento() {
-    const itensContainer = document.getElementById('orcamento-itens');
+function adicionarItemOrcamento(itensContainer = document.getElementById('orcamento-itens')) {
+    if (!itensContainer) return;
+
     const novoItem = document.createElement('div');
     novoItem.className = 'item-orcamento';
     novoItem.innerHTML = `
@@ -305,7 +307,8 @@ function adicionarItemOrcamento() {
 
 // Calcular total do orçamento
 function calcularTotalOrcamento() {
-    const itens = document.querySelectorAll('.item-orcamento');
+    const itensContainer = document.getElementById('orcamento-itens');
+    const itens = itensContainer ? itensContainer.querySelectorAll('.item-orcamento') : [];
     let total = 0;
     
     itens.forEach(item => {
@@ -320,10 +323,14 @@ function calcularTotalOrcamento() {
 // Salvar orçamento
 function salvarOrcamento() {
     const itens = [];
-    document.querySelectorAll('.item-orcamento').forEach(item => {
-        const descricao = item.querySelector('.item-descricao').value;
-        const quantidade = parseFloat(item.querySelector('.item-quantidade').value) || 0;
-        const valor = parseFloat(item.querySelector('.item-valor').value) || 0;
+    const itensContainer = document.getElementById('orcamento-itens');
+
+    if (!itensContainer) return;
+
+    itensContainer.querySelectorAll('.item-orcamento').forEach(item => {
+        const descricao = item.querySelector('.item-descricao')?.value.trim();
+        const quantidade = parseFloat(item.querySelector('.item-quantidade')?.value) || 0;
+        const valor = parseFloat(item.querySelector('.item-valor')?.value) || 0;
         
         if (descricao && quantidade > 0 && valor > 0) {
             itens.push({
