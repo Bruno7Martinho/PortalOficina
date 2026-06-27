@@ -591,8 +591,7 @@ h1, h2, h3, h4, h5, h6 {
    ============================================ */
 
 /* Esconder botões "Cancelar" e "Fechar" mas manter o "×" */
-.form-actions .btn-secondary.modal-close,
-.modal .btn-secondary:not(.modal-close) {
+.form-actions .btn-secondary.modal-close {
     display: none !important;
 }
 
